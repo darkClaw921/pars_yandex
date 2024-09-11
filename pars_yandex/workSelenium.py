@@ -49,7 +49,7 @@ def get_photo_inside():
     # photos=driver.find_elements(By.CLASS_NAME, 'media-gallery _mode_preview _columns_3')
     # pprint(photos)
     images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
-    image_urls = [img.get_attribute('src') for img in images[:10]]  # Получаем только первые 10 изображений
+    image_urls = [img.get_attribute('src') for img in images[:20]]  # Получаем только первые 10 изображений
     pprint(image_urls)
     return image_urls
 
@@ -64,7 +64,7 @@ def get_photo_outside():
     # photos=driver.find_elements(By.CLASS_NAME, 'media-gallery _mode_preview _columns_3')
     # pprint(photos)
     images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
-    image_urls = [img.get_attribute('src') for img in images[:10]]  # Получаем только первые 10 изображений
+    image_urls = [img.get_attribute('src') for img in images[:20]]  # Получаем только первые 10 изображений
     pprint(image_urls)
     return image_urls
 
