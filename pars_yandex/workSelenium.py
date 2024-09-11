@@ -44,6 +44,10 @@ def get_photo_inside():
     time.sleep(5)
 #    with open('index.html', 'w') as file:
 #        file.write(driver.page_source) 
+    
+    button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
+    button.click()
+    
     button=driver.find_element(By.XPATH, '//button[span[text()="Interior"]]')
     #button=driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div[1]/div[1]/div[1]/div/div[1]/div/div[3]/div/div[3]/div/div/div[5]/div/div/div[2]/div[2]/div/div/div/div/div[2]/button')
     # Кликаем по кнопке
@@ -74,7 +78,7 @@ def get_photo_outside():
     # for _ in range(5):  # Прокручиваем 3 раза
     #     scroll_down()
     images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
-    image_urls = [img.get_attribute('src') for img in images[:20]]  # Получаем только первые 10 изображений
+    image_urls = [img.get_attribute('src') for img in images[:10]]  # Получаем только первые 10 изображений
     pprint(image_urls)
     return image_urls
 
