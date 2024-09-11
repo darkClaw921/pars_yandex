@@ -31,11 +31,12 @@ logger.add("logs/file_{time}.log",format="{time} - {level} - {message}", rotatio
 @router.message(lambda message: re.match(r'https://.*', message.text))
 async def messagetry(msg: Message, state: FSMContext):
     url = msg.text
+    logger.info(f"Получена ссылка {url} от пользователя {msg.from_user.id} с ником {msg.from_user.username}")
     await msg.reply("Начинаю сбор, может занять некоторое время ⏱️")
     try:
         phone, imgInside, imgOutside = get_info(url)  # Вызов функции из workSelenium.py
     except Exception as e:
-        await msg.reply("Ошибка при обработке ссылки - " + str(e))
+        await msg.reply(f"Ошибка при обработке ссылки {e}")
         return
     
     await msg.reply(phone)  # Отправка информации обратно пользователю
