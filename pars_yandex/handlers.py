@@ -42,13 +42,13 @@ async def messagetry(msg: Message, state: FSMContext):
 
     # Подготовка медиа группы
     
-    media = [InputMediaPhoto(str(img)) for img in imgInside]
+    media = [InputMediaPhoto(media=str(img)) for img in imgInside]
     # Отправка медиа группы
-    await msg.answer_media_group(message.chat.id, media)
+    await msg.answer_media_group(media)
     
-    media = [InputMediaPhoto(str(img)) for img in imgOutside]
+    media = [InputMediaPhoto(media=str(img)) for img in imgOutside]
     # Отправка медиа группы
-    await msg.answer_media_group(message.chat.id, media)
+    await msg.answer_media_group(media)
 
 @router.message(lambda message: not re.match(r'https://.*', message.text))
 async def message(msg: Message, state: FSMContext):
