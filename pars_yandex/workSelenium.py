@@ -28,9 +28,14 @@ def scroll_down(element):
     
     
     # iframe = driver.find_element(By.TAG_NAME, "iframe")
-    scroll_origin = ScrollOrigin.from_element(element)
+    # scroll_origin = ScrollOrigin.from_element(element)
+    # ActionChains(driver)\
+    #     .scroll_from_origin(scroll_origin, 0, 400)\
+    #     .perform()
+
+    scroll_origin = ScrollOrigin.from_element(element, 0, -50)
     ActionChains(driver)\
-        .scroll_from_origin(scroll_origin, 0, 400)\
+        .scroll_from_origin(scroll_origin, 0, 500)\
         .perform()
     # time.sleep(2)  # Ждем, чтобы страница успела загрузить новые элементы
 
