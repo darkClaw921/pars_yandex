@@ -28,16 +28,24 @@ def scroll_down(element):
     
     
     # iframe = driver.find_element(By.TAG_NAME, "iframe")
-    # scroll_origin = ScrollOrigin.from_element(element)
-    # ActionChains(driver)\
-    #     .scroll_from_origin(scroll_origin, 0, 400)\
-    #     .perform()
+    scroll_origin = ScrollOrigin.from_element(element)
+    ActionChains(driver)\
+        .scroll_from_origin(scroll_origin, 0, 400)\
+        .perform()
 
     scroll_origin = ScrollOrigin.from_element(element, 0, -50)
     ActionChains(driver)\
-        .scroll_from_origin(scroll_origin, 0, 500)\
+        .scroll_from_origin(scroll_origin, 0, 5000)\
         .perform()
-    # time.sleep(2)  # Ждем, чтобы страница успела загрузить новые элементы
+    
+    scroll_origin = ScrollOrigin.from_viewport(10, 10)
+
+    ActionChains(driver)\
+        .scroll_from_origin(scroll_origin, 0, 200)\
+        .perform()
+
+
+    time.sleep(5)  # Ждем, чтобы страница успела загрузить новые элементы
 
 def get_phone():
     try:
@@ -59,9 +67,12 @@ def get_photo_inside():
 #        file.write(driver.page_source) 
     
     button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
+    # button=driver.find_element(By.XPATH, '//button[span[text()="Снаружи"]]')
     button.click()
     
     button=driver.find_element(By.XPATH, '//button[span[text()="Interior"]]')
+    # button=driver.find_element(By.XPATH, '//button[span[text()="Внутри"]]')
+
     #button=driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div[1]/div[1]/div[1]/div/div[1]/div/div[3]/div/div[3]/div/div/div[5]/div/div/div[2]/div[2]/div/div/div/div/div[2]/button')
     # Кликаем по кнопке
     button.click()
@@ -80,6 +91,7 @@ def get_photo_inside():
 def get_photo_outside():
 
     button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
+    # button=driver.find_element(By.XPATH, '//button[span[text()="Снаружи"]]')
     
     # Кликаем по кнопке
     button.click()
@@ -107,6 +119,7 @@ def get_info(url:str):
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    # driver = webdriver.Chrome()
     # driver.get("https://yandex.ru/navi/org/chaykhana_mayiz/232322945673")
     driver.get(url)
     title=driver.title
