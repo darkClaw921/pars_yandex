@@ -8,7 +8,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 
 options = Options()
 user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' \
@@ -21,9 +22,16 @@ options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-def scroll_down():
+def scroll_down(element):
     # Прокручиваем страницу вниз
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    
+    
+    # iframe = driver.find_element(By.TAG_NAME, "iframe")
+    scroll_origin = ScrollOrigin.from_element(element)
+    ActionChains(driver)\
+        .scroll_from_origin(scroll_origin, 0, 400)\
+        .perform()
     # time.sleep(2)  # Ждем, чтобы страница успела загрузить новые элементы
 
 def get_phone():
@@ -56,8 +64,8 @@ def get_photo_inside():
     # photos=driver.find_elements(By.CLASS_NAME, 'media-gallery _mode_preview _columns_3')
     # pprint(photos)
     # Прокручиваем страницу вниз несколько раз
-    for _ in range(10):  # Прокручиваем 3 раза
-        scroll_down()
+    # for _ in range(10):  # Прокручиваем 3 раза
+    scroll_down(button)
 
     images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
     image_urls = [img.get_attribute('src') for img in images[:20]]  # Получаем только первые 10 изображений
@@ -65,9 +73,9 @@ def get_photo_inside():
     return image_urls
 
 def get_photo_outside():
-    button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, '//button[span[text()="Exterior"]]'))
-    )
+
+    button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
+    
     # Кликаем по кнопке
     button.click()
 
