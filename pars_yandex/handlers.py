@@ -44,13 +44,13 @@ async def messagetry(msg: Message, state: FSMContext):
 
     # Подготовка медиа группы
     
-    await bot.send_message("Фотографии Внутри:")
+    await bot.send_message(msg.from_user.id,"Фотографии Внутри:")
     media = [InputMediaPhoto(media=str(img)) for img in imgInside]
     # Отправка медиа группы
     await msg.answer_media_group(media)
     
 
-    await bot.send_message("Фотографии Снаружи:")
+    await bot.send_message(msg.from_user.id, "Фотографии Снаружи:")
     media = [InputMediaPhoto(media=str(img)) for img in imgOutside]
     # Отправка медиа группы
     await msg.answer_media_group(media)

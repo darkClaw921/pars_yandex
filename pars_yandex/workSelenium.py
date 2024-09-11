@@ -21,7 +21,10 @@ options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-
+def scroll_down():
+    # Прокручиваем страницу вниз
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(2)  # Ждем, чтобы страница успела загрузить новые элементы
 
 def get_phone():
     try:
@@ -48,6 +51,10 @@ def get_photo_inside():
     time.sleep(5)
     # photos=driver.find_elements(By.CLASS_NAME, 'media-gallery _mode_preview _columns_3')
     # pprint(photos)
+    # Прокручиваем страницу вниз несколько раз
+    for _ in range(5):  # Прокручиваем 3 раза
+        scroll_down()
+
     images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
     image_urls = [img.get_attribute('src') for img in images[:20]]  # Получаем только первые 10 изображений
     pprint(image_urls)
@@ -63,6 +70,9 @@ def get_photo_outside():
     time.sleep(5)
     # photos=driver.find_elements(By.CLASS_NAME, 'media-gallery _mode_preview _columns_3')
     # pprint(photos)
+    # Прокручиваем страницу вниз несколько раз
+    for _ in range(5):  # Прокручиваем 3 раза
+        scroll_down()
     images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
     image_urls = [img.get_attribute('src') for img in images[:20]]  # Получаем только первые 10 изображений
     pprint(image_urls)
