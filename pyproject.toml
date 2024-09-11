@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "pars-yandex"
+version = "0.1.0"
+description = ""
+authors = ["Igor Gerasimov <gerasimov.igor.98@icloud.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.32.3"
+python-dotenv = "^1.0.1"
+beautifulsoup4 = "^4.12.3"
+selenium = "^4.24.0"
+webdriver-manager = "^4.0.2"
+aiogram = "^3.13.0"
+loguru = "^0.7.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
