@@ -12,7 +12,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 options = Options()
 user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-              'Chrome/123.0.0.0 Safari/537.36'
+            'Chrome/123.0.0.0 Safari/537.36'
 options = webdriver.ChromeOptions()
 options.add_argument("--start-maximized")
 options.add_argument('--headless')
@@ -28,7 +28,7 @@ def get_phone():
         phone_div = driver.find_element(By.CLASS_NAME, 'orgpage-phones-view__phone-number').text
     except: 
         phone_div = driver.find_element(By.CLASS_NAME, 'card-phones-view__phone-number').text
-        
+
     print(phone_div)
     # photo_div = driver.find_elements(By.CLASS_NAME, 'tabs-select-view__title _name_gallery') #кнопка фото
     # photo_div = driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div[1]/div[1]/div[1]/div/div[1]/div/div[3]/div/div[17]/div/div/div[2]/div[2]/div/div/div/div[1]/div[3]/div') #кнопка фото
@@ -69,6 +69,17 @@ def get_photo_outside():
     return image_urls
 
 def get_info(url:str):
+    global driver
+    options = Options()
+    user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                'Chrome/123.0.0.0 Safari/537.36'
+    options = webdriver.ChromeOptions()
+    options.add_argument("--start-maximized")
+    options.add_argument('--headless')
+    options.add_argument(f'user-agent={user_agent}')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     # driver.get("https://yandex.ru/navi/org/chaykhana_mayiz/232322945673")
     driver.get(url)
     title=driver.title
