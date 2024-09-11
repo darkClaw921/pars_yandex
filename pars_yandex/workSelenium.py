@@ -48,11 +48,11 @@ def get_photo_inside():
     #button=driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div[1]/div[1]/div[1]/div/div[1]/div/div[3]/div/div[3]/div/div/div[5]/div/div/div[2]/div[2]/div/div/div/div/div[2]/button')
     # Кликаем по кнопке
     button.click()
-    time.sleep(5)
+    time.sleep(3)
     # photos=driver.find_elements(By.CLASS_NAME, 'media-gallery _mode_preview _columns_3')
     # pprint(photos)
     # Прокручиваем страницу вниз несколько раз
-    for _ in range(5):  # Прокручиваем 3 раза
+    for _ in range(20):  # Прокручиваем 3 раза
         scroll_down()
 
     images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
@@ -71,8 +71,8 @@ def get_photo_outside():
     # photos=driver.find_elements(By.CLASS_NAME, 'media-gallery _mode_preview _columns_3')
     # pprint(photos)
     # Прокручиваем страницу вниз несколько раз
-    for _ in range(5):  # Прокручиваем 3 раза
-        scroll_down()
+    # for _ in range(5):  # Прокручиваем 3 раза
+    #     scroll_down()
     images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
     image_urls = [img.get_attribute('src') for img in images[:20]]  # Получаем только первые 10 изображений
     pprint(image_urls)
