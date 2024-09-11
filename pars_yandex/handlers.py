@@ -31,7 +31,7 @@ logger.add("logs/file_{time}.log",format="{time} - {level} - {message}", rotatio
 @router.message(lambda message: re.match(r'https://.*', message.text))
 async def messagetry(msg: Message, state: FSMContext):
     url = msg.text
-
+    await msg.reply("Начинаю сбор, может занять некоторое время ⏱️")
     try:
         phone, imgInside, imgOutside = get_info(url)  # Вызов функции из workSelenium.py
     except Exception as e:
@@ -42,11 +42,11 @@ async def messagetry(msg: Message, state: FSMContext):
 
     # Подготовка медиа группы
     
-    media = [types.InputMediaPhoto(img) for img in imgInside]
+    media = [InputMediaPhoto(str(img)) for img in imgInside]
     # Отправка медиа группы
     await msg.answer_media_group(message.chat.id, media)
     
-    media = [types.InputMediaPhoto(img) for img in imgOutside]
+    media = [InputMediaPhoto(str(img)) for img in imgOutside]
     # Отправка медиа группы
     await msg.answer_media_group(message.chat.id, media)
 
