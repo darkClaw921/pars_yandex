@@ -36,7 +36,8 @@ async def messagetry(msg: Message, state: FSMContext):
     try:
         phone, imgInside, imgOutside = get_info(url)  # Вызов функции из workSelenium.py
     except Exception as e:
-        await msg.reply(f"Ошибка при обработке ссылки {e}")
+        logger.error(e)
+        await msg.reply(f"Ошибка при обработке ссылки")
         return
     
     await msg.reply(phone)  # Отправка информации обратно пользователю

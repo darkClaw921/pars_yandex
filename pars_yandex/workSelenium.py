@@ -24,7 +24,11 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), opti
 
 
 def get_phone():
-    phone_div = driver.find_element(By.CLASS_NAME, 'orgpage-phones-view__phone-number').text
+    try:
+        phone_div = driver.find_element(By.CLASS_NAME, 'orgpage-phones-view__phone-number').text
+    except: 
+        phone_div = driver.find_element(By.CLASS_NAME, 'card-phones-view__phone-number').text
+        
     print(phone_div)
     # photo_div = driver.find_elements(By.CLASS_NAME, 'tabs-select-view__title _name_gallery') #кнопка фото
     # photo_div = driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div[1]/div[1]/div[1]/div/div[1]/div/div[3]/div/div[17]/div/div/div[2]/div[2]/div/div/div/div[1]/div[3]/div') #кнопка фото
