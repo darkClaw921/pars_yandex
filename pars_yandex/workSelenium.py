@@ -127,18 +127,21 @@ def get_info(url:str):
     time.sleep(5)   
     try:
         phone=get_phone() 
-    except:
+    except Exception as e:
+        print(e)
         phone=None
     # phone=get_phone()
 
     try:
         imgInside=get_photo_inside()
-    except:
+    except Exception as e:
+        print(e)
         imgInside=None
     
     try:
         imgOutside=get_photo_outside()
-    except:
+    except Exception as e:
+        print(e)
         imgOutside=None
 
     driver.close()
