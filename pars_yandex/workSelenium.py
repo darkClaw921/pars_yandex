@@ -66,9 +66,9 @@ def get_photo_inside():
 #    with open('index.html', 'w') as file:
 #        file.write(driver.page_source) 
     
-    button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
-    # button=driver.find_element(By.XPATH, '//button[span[text()="Снаружи"]]')
-    button.click()
+    # button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
+    # # button=driver.find_element(By.XPATH, '//button[span[text()="Снаружи"]]')
+    # button.click()
     
     button=driver.find_element(By.XPATH, '//button[span[text()="Interior"]]')
     # button=driver.find_element(By.XPATH, '//button[span[text()="Внутри"]]')
