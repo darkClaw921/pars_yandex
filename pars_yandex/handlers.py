@@ -69,8 +69,11 @@ async def messagetry(msg: Message, state: FSMContext):
         media = [InputMediaPhoto(media=str(img)) for img in imgInside]
     # Отправка медиа группы
     #первая половина фото
-        await msg.answer_media_group(media[:len(media)//2])
-        await msg.answer_media_group(media[len(media)//2:])
+        if len(media)==1:
+            await msg.answer_media_group(media)
+        else:
+            await msg.answer_media_group(media[:len(media)//2])
+            await msg.answer_media_group(media[len(media)//2:])
     
     if imgOutside is None:
         await bot.send_message(msg.from_user.id,"Фотографии Снаружи отсутствуют")
@@ -78,8 +81,11 @@ async def messagetry(msg: Message, state: FSMContext):
         await bot.send_message(msg.from_user.id, "Фотографии Снаружи:")
         media = [InputMediaPhoto(media=str(img)) for img in imgOutside]
         # Отправка медиа группы
-        await msg.answer_media_group(media[:len(media)//2])
-        await msg.answer_media_group(media[len(media)//2:])
+        if len(media)==1:
+            await msg.answer_media_group(media)
+        else:
+            await msg.answer_media_group(media[:len(media)//2])
+            await msg.answer_media_group(media[len(media)//2:])
         
 
 @router.message(lambda message: not re.match(r'https://.*', message.text))
