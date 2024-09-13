@@ -45,7 +45,7 @@ async def messagetry(msg: Message, state: FSMContext):
         # await msg.reply("Ошибка при обработке ссылки")
         # return
         url=msg.text    
-        
+    
     logger.info(f"Получена ссылка {url} от пользователя {msg.from_user.id} с ником {msg.from_user.username}")
     await msg.reply("Начинаю сбор, может занять некоторое время ⏱️")
     try:
@@ -54,8 +54,12 @@ async def messagetry(msg: Message, state: FSMContext):
         logger.error(e)
         await msg.reply(f"Ошибка при обработке ссылки")
         return
-    
-    await msg.reply(phone)  # Отправка информации обратно пользователю
+    if phone is None:
+        await msg.reply(f"Телефон отсутсвует")
+    else:
+        await msg.reply(phone)  # Отправка информации обратно пользователю
+        
+
 
     # Подготовка медиа группы
     if imgInside is None:

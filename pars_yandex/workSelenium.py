@@ -124,8 +124,12 @@ def get_info(url:str):
     driver.get(url)
     title=driver.title
     print(title)
-    time.sleep(5)    
-    phone=get_phone()
+    time.sleep(5)   
+    try:
+        phone=get_phone() 
+    except:
+        phone=None
+    # phone=get_phone()
 
     try:
         imgInside=get_photo_inside()
