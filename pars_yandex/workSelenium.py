@@ -126,8 +126,16 @@ def get_info(url:str):
     print(title)
     time.sleep(5)    
     phone=get_phone()
-    imgInside=get_photo_inside()
-    imgOutside=get_photo_outside()
+
+    try:
+        imgInside=get_photo_inside()
+    except:
+        imgInside=None
+    
+    try:
+        imgOutside=get_photo_outside()
+    except:
+        imgOutside=None
 
     driver.close()
     return phone, imgInside, imgOutside

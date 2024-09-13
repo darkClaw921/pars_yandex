@@ -28,9 +28,24 @@ from loguru import logger
 logger.add("logs/file_{time}.log",format="{time} - {level} - {message}", rotation="100 MB", retention="10 days", level="DEBUG")
 
 
+
+def extract_https_link(text):
+    # Ищем первую HTTPS ссылку в тексте
+    match = re.search(r'https://[^\s]+', text)
+    if match:
+        return match.group(0)  # Возвращаем найденную ссылку
+    return None  # Если ссылки не найдено, возвращаем Non
+
 @router.message(lambda message: re.match(r'https://.*', message.text))
 async def messagetry(msg: Message, state: FSMContext):
-    url = msg.text
+    try:
+        url = extract_https_link(msg.text)
+    except:
+        logger.error(f"Ошибка при обработке ссылки {msg.text} от пользователя {msg.from_user.id} с ником {msg.from_user.username}")
+        # await msg.reply("Ошибка при обработке ссылки")
+        # return
+        url=msg.text    
+        
     logger.info(f"Получена ссылка {url} от пользователя {msg.from_user.id} с ником {msg.from_user.username}")
     await msg.reply("Начинаю сбор, может занять некоторое время ⏱️")
     try:
@@ -43,20 +58,24 @@ async def messagetry(msg: Message, state: FSMContext):
     await msg.reply(phone)  # Отправка информации обратно пользователю
 
     # Подготовка медиа группы
-    
-    await bot.send_message(msg.from_user.id,"Фотографии Внутри:")
-    media = [InputMediaPhoto(media=str(img)) for img in imgInside]
+    if imgInside is None:
+        await bot.send_message(msg.from_user.id,"Фотографии Внутри отсутствуют")
+    else:
+        await bot.send_message(msg.from_user.id,"Фотографии Внутри:")
+        media = [InputMediaPhoto(media=str(img)) for img in imgInside]
     # Отправка медиа группы
     #первая половина фото
-    await msg.answer_media_group(media[:len(media)//2])
-    await msg.answer_media_group(media[len(media)//2:])
+        await msg.answer_media_group(media[:len(media)//2])
+        await msg.answer_media_group(media[len(media)//2:])
     
-
-    await bot.send_message(msg.from_user.id, "Фотографии Снаружи:")
-    media = [InputMediaPhoto(media=str(img)) for img in imgOutside]
-    # Отправка медиа группы
-    await msg.answer_media_group(media[:len(media)//2])
-    await msg.answer_media_group(media[len(media)//2:])
+    if imgOutside is None:
+        await bot.send_message(msg.from_user.id,"Фотографии Снаружи отсутствуют")
+    else:
+        await bot.send_message(msg.from_user.id, "Фотографии Снаружи:")
+        media = [InputMediaPhoto(media=str(img)) for img in imgOutside]
+        # Отправка медиа группы
+        await msg.answer_media_group(media[:len(media)//2])
+        await msg.answer_media_group(media[len(media)//2:])
         
 
 @router.message(lambda message: not re.match(r'https://.*', message.text))
