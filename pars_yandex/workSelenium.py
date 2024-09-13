@@ -56,8 +56,7 @@ def get_phone():
     print(phone_div)
     # photo_div = driver.find_elements(By.CLASS_NAME, 'tabs-select-view__title _name_gallery') #кнопка фото
     # photo_div = driver.find_elements(By.XPATH, '/html/body/div[1]/div[2]/div[8]/div[1]/div[1]/div[1]/div/div[1]/div/div[3]/div/div[17]/div/div/div[2]/div[2]/div/div/div/div[1]/div[3]/div') #кнопка фото
-    photo_button = driver.find_element(By.XPATH, '//div[@aria-selected="false" and @class="tabs-select-view__title _name_gallery"]')
-    photo_button.click()    
+       
     return phone_div
 
 #time.sleep(10)
@@ -131,7 +130,11 @@ def get_info(url:str):
         print(e)
         phone=None
     # phone=get_phone()
-
+    try:
+        photo_button = driver.find_element(By.XPATH, '//div[@aria-selected="false" and @class="tabs-select-view__title _name_gallery"]')
+        photo_button.click() 
+    except:
+        return phone, None, None
     try:
         imgInside=get_photo_inside()
     except Exception as e:
