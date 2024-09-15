@@ -54,7 +54,7 @@ def get_main_photo():
     # try:
     global driver
     # Ожидание загрузки элемента
-    image_frame = WebDriverWait(driver, 1).until(
+    image_frame = WebDriverWait(driver, 5).until(
         EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "image-frame-wrapper")]'))
     )
 
@@ -71,7 +71,9 @@ def get_main_photo():
     actions = ActionChains(driver)
 
     # Наводим курсор на родительский элемент
+    time.sleep(1)
     actions.move_to_element(image_frame).perform()
+
 
     # Ожидание появления целевого элемента
     time.sleep(1)
@@ -83,7 +85,7 @@ def get_main_photo():
 def get_adress():
     global driver
      # Ожидание загрузки элемента с адресом
-    address_element = WebDriverWait(driver, 10).until(
+    address_element = WebDriverWait(driver, 5).until(
         EC.presence_of_element_located((By.XPATH, '//div[@itemprop="address"]//span'))
     )
 
@@ -127,7 +129,7 @@ def get_all_photo():
     image_count = len(images)
     print(f'Количество изображений: {image_count}')
     for _ in range(image_count - 1):
-        image_frame = WebDriverWait(driver, 1).until(
+        image_frame = WebDriverWait(driver, 3).until(
             EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "image-frame-wrapper")]'))
         )
 
