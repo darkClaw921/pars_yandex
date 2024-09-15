@@ -72,11 +72,13 @@ def get_main_photo():
 
     # Наводим курсор на родительский элемент
     time.sleep(1)
-    actions.move_to_element(image_frame).perform()
+    a=actions.move_to_element(image_frame)
+    time.sleep(2) 
+    a.perform()
 
 
     # Ожидание появления целевого элемента
-    time.sleep(1)
+    # time.sleep(1)
     scroll_down(image_frame)
 
 
