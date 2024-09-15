@@ -58,11 +58,11 @@ async def handle_link(msg: Message):
     await msg.reply("Начинаю сбор, может занять некоторое время ⏱️")
 
     if 'avito.ru' in url:
-        await handle_avito(message)
+        await handle_avito(message, url)
     elif 'cian.ru' in url:
-        await handle_cian(message)
+        await handle_cian(message, url)
     elif 'yandex.ru' in url:
-        await handle_yandex(message)
+        await handle_yandex(message, url)
     else:
         await message.reply("Ссылка не распознана. Пожалуйста, отправьте ссылку на Avito, Cian или Yandex.")
 
