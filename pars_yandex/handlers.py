@@ -53,7 +53,7 @@ async def handle_link(msg: Message):
         # await msg.reply("Ошибка при обработке ссылки")
         # return
         url=msg.text 
-    url = msg.text
+    # url = msg.text
     logger.info(f"Получена ссылка {url} от пользователя {msg.from_user.id} с ником {msg.from_user.username}")
     await msg.reply("Начинаю сбор, может занять некоторое время ⏱️")
 
