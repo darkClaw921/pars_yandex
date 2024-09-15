@@ -71,9 +71,9 @@ def get_main_photo():
     actions = ActionChains(driver)
 
     # Наводим курсор на родительский элемент
-    time.sleep(1)
+    time.sleep(2)
     a=actions.move_to_element(image_frame)
-    time.sleep(2) 
+    time.sleep(3) 
     a.perform()
 
 
