@@ -15,16 +15,16 @@ from selenium.webdriver.chrome.options import Options
 # driver = webdriver.Chrome()
 # Открываем нужный URL (замените на фактический URL)
 # driver.get("https://www.avito.ru/mihnevo/doma_dachi_kottedzhi/dom_1067_m_na_uchastke_10_sot._3039447988?utm_campaign=native&utm_medium=item_page_ios&utm_source=soc_sharing&guests=2")  # Замените на URL, где находится ваш элемент
-options = Options()
-user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-            'Chrome/123.0.0.0 Safari/537.36'
-options = webdriver.ChromeOptions()
-options.add_argument("--start-maximized")
-options.add_argument('--headless')
-options.add_argument(f'user-agent={user_agent}')
-options.add_argument('--no-sandbox')
-options.add_argument('--disable-dev-shm-usage')
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+# options = Options()
+# user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+#             'Chrome/123.0.0.0 Safari/537.36'
+# options = webdriver.ChromeOptions()
+# options.add_argument("--start-maximized")
+# options.add_argument('--headless')
+# options.add_argument(f'user-agent={user_agent}')
+# options.add_argument('--no-sandbox')
+# options.add_argument('--disable-dev-shm-usage')
+# driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     # driver = webdriver.Chrome()
 def scroll_down(element):
     # Прокручиваем страницу вниз
@@ -54,7 +54,7 @@ def get_main_photo():
     # try:
     global driver
     # Ожидание загрузки элемента
-    image_frame = WebDriverWait(driver, 5).until(
+    image_frame = WebDriverWait(driver, 50).until(
         EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "image-frame-wrapper")]'))
     )
 
@@ -96,6 +96,7 @@ def get_adress():
 
     # Выводим полный адрес
     print(f'Полный адрес: {full_address}')
+    return full_address
 
 def get_all_photo():
     global driver
@@ -143,8 +144,8 @@ def get_all_photo():
         target_element.click()
     
     pprint(urls)
-    
-    driver.quit()
+    return urls
+    # driver.quit()
 
 def get_info_avito(url:str):
     global driver
@@ -157,14 +158,15 @@ def get_info_avito(url:str):
     options.add_argument(f'user-agent={user_agent}')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    # driver = webdriver.Chrome()
+    # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome()
     # driver.get("https://yandex.ru/navi/org/chaykhana_mayiz/232322945673")
     driver.get(url)
 
     get_main_photo()
     adress=get_adress()
     photo=get_all_photo()
+    driver.close()
     # try:
     #     adress=get_adress()
     # except:

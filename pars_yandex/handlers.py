@@ -86,14 +86,14 @@ async def handle_avito(msg: Message, url: str):
             send_photos(msg, photo)
 
 
-    await message.reply("Это ссылка на Avito!")
+    await msg.reply("Это ссылка на Avito!")
 
 async def handle_cian(msg: Message, url: str):
     # await message.reply("Это ссылка на Cian!")
-    await message.reply("Ссылки на Cian пока не поддерживаются")
+    await msg.reply("Ссылки на Cian пока не поддерживаются")
 
 async def handle_yandex(msg: Message, url: str):
-    await message.reply("Это ссылка на Yandex!")
+    await msg.reply("Это ссылка на Yandex!")
            
     try:
         phone, imgInside, imgOutside = get_info(url)  # Вызов функции из workSelenium.py
