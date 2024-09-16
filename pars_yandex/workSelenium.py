@@ -89,8 +89,8 @@ def get_photo_inside():
 
 def get_photo_outside():
 
-    button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
-    # button=driver.find_element(By.XPATH, '//button[span[text()="Снаружи"]]')
+    # button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
+    button=driver.find_element(By.XPATH, '//button[span[text()="Снаружи"]]')
     
     # Кликаем по кнопке
     button.click()
