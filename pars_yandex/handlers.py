@@ -69,6 +69,7 @@ async def handle_link(msg: Message):
 
 
 async def handle_avito(msg: Message, url: str):
+    await msg.reply("Это ссылка на Avito!")
     adress, photo = get_info_avito(url)  
     if adress is None:
         await msg.reply(f"Адрес отсутсвует")
@@ -86,7 +87,7 @@ async def handle_avito(msg: Message, url: str):
             send_photos(msg, photo)
 
 
-    await msg.reply("Это ссылка на Avito!")
+   
 
 async def handle_cian(msg: Message, url: str):
     # await message.reply("Это ссылка на Cian!")

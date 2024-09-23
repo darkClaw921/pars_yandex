@@ -243,16 +243,16 @@ def get_info_avito(url:str):
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     # driver = webdriver.Chrome()
     # driver.get("https://yandex.ru/navi/org/chaykhana_mayiz/232322945673")
-    # driver.get(url)
+    driver.get(url)
 
-    # navigate to the target webpage
-    driver.get("https://httpbin.io/ip")
+    # # navigate to the target webpage
+    # driver.get("https://httpbin.io/ip")
 
-    # print the body content of the target webpage
-    print(driver.find_element(By.TAG_NAME, "body").text)
+    # # print the body content of the target webpage
+    # print(driver.find_element(By.TAG_NAME, "body").text)
 
-    # release the resources and close the browser
-    driver.quit()
+    # # release the resources and close the browser
+    # driver.quit()
 
 
 
