@@ -99,7 +99,7 @@ def scroll_down(element):
         .scroll_from_origin(scroll_origin, 0, 5000)\
         .perform()
     except Exception as e: 
-        pprint("error: ", e)
+        print("error: ", e)
 
     scroll_origin = ScrollOrigin.from_viewport(10, 10)
     try:    
@@ -107,7 +107,7 @@ def scroll_down(element):
         .scroll_from_origin(scroll_origin, 0, 700)\
         .perform()
     except Exception as e:
-        pprint("error2: ", e)
+        print("error2: ", e)
 
 
     time.sleep(1)  # Ждем, чтобы страница успела загрузить новые элементы
