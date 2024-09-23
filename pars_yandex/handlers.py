@@ -84,7 +84,7 @@ async def handle_avito(msg: Message, url: str):
             await msg.answer_media_group(media)
         else:
             #
-            send_photos(msg, photo)
+            await send_photos(msg, photo)
 
 
    
