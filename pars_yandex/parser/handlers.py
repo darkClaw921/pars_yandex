@@ -18,6 +18,8 @@ import os
 from loguru import logger
 from workSelenium import get_info
 from pars_avito import get_info_avito
+import postgreWork
+
 load_dotenv()
 TOKEN = os.getenv('TOKEN_BOT_EVENT')
 
@@ -26,7 +28,7 @@ router = Router()
 bot = Bot(token=TOKEN,)
 
 from loguru import logger
-logger.add("logs/file_{time}.log",format="{time} - {level} - {message}", rotation="100 MB", retention="10 days", level="DEBUG")
+logger.add("logs/parsBot_{time}.log",format="{time} - {level} - {message}", rotation="100 MB", retention="10 days", level="DEBUG")
 
 
 
@@ -43,7 +45,23 @@ def extract_https_link(text):
 async def send_photos(msg: Message, photos: list):
     for i in range(0, len(photos), 10):
         await msg.answer_media_group([InputMediaPhoto(media=str(img)) for img in photos[i:i + 10]])
-        
+
+
+
+@router.message(Command("start"))
+async def cmd_start(msg: types.Message):
+    try:
+        postgreWork.add_new_user(userID=message.from_user.id,
+                             nickname= message.from_user.username)
+    except Exception as e:
+        await msg.reply('Вы уже зарегистрированы')
+    
+    await msg.reply("""Добро пожаловать!
+Бот может обрабавывать ссылки на яндекс карты, авито 
+                    """)
+    return 0
+
+
 @router.message(lambda message: message.text.startswith('https'))
 async def handle_link(msg: Message):
     try:
@@ -70,14 +88,15 @@ async def handle_link(msg: Message):
 
 async def handle_avito(msg: Message, url: str):
     await msg.reply("Это ссылка на Avito!")
-    adress, photo = get_info_avito(url)  
+    adress, photo, name, timeWork, phone = get_info_avito(url)  
     if adress is None:
-        await msg.reply(f"Адрес отсутсвует")
+        await msg.reply(f"Адрес отсутствует")
     else:
         await msg.reply(adress)
     if photo is None:
         await msg.reply(f"Фотографии отсутствуют")
     else:
+        
         await msg.reply("Фотографии:")
         media = [InputMediaPhoto(media=str(img)) for img in photo]
         if len(media)==1:
@@ -85,6 +104,14 @@ async def handle_avito(msg: Message, url: str):
         else:
             #
             await send_photos(msg, photo)
+    postgreWork.add_new_project(userID=msg.from_user.id, 
+                                phone=phone, 
+                                email='',
+                                timeWork=timeWork,
+                                name=name,
+                                address=adress,
+                                photos=photo
+                                )
 
 
    
@@ -97,13 +124,15 @@ async def handle_yandex(msg: Message, url: str):
     await msg.reply("Это ссылка на Yandex!")
            
     try:
-        phone, imgInside, imgOutside = get_info(url)  # Вызов функции из workSelenium.py
+        # phone, imgInside, imgOutside = get_info(url)  # Вызов функции из workSelenium.py
+        # phone, imgInside, imgOutside = get_info(url)  # Вызов функции из workSelenium.py
+        adress, imgInside, imgOutside, imgAll, name, timeWork, phone = get_info(url)
     except Exception as e:
         logger.error(e)
         await msg.reply(f"Ошибка при обработке ссылки")
         return 0 
     if phone is None:
-        await msg.reply(f"Телефон отсутсвует")
+        await msg.reply(f"Телефон отсутствует")
     else:
         await msg.reply(phone)  # Отправка информации обратно пользователю
         
@@ -133,6 +162,56 @@ async def handle_yandex(msg: Message, url: str):
             await msg.answer_media_group(media[:len(media)//2])
             await msg.answer_media_group(media[len(media)//2:])
     
+    
+    if imgAll is None:
+        await bot.send_message(msg.from_user.id,"Фотографии Все отсутствуют")
+    else:
+        await bot.send_message(msg.from_user.id, "Фотографии Все:")
+        media = [InputMediaPhoto(media=str(img)) for img in imgAll]
+        # Отправка медиа группы
+        if len(media)==1:
+            await msg.answer_media_group(media)
+        else:
+            await msg.answer_media_group(media[:len(media)//2])
+            await msg.answer_media_group(media[len(media)//2:])
+    
+    if adress is None:
+        await bot.send_message(msg.from_user.id,"Адрес отсутствует")
+    else:
+        await bot.send_message(msg.from_user.id, "Адрес:")
+        await msg.answer(adress)
+
+    if timeWork is None:
+        await bot.send_message(msg.from_user.id,"Время работы отсутствует")
+    else:
+        await bot.send_message(msg.from_user.id, "Время работы:")
+        await msg.answer(timeWork)
+        
+    if name is None:
+        await bot.send_message(msg.from_user.id,"Название отсутствует")
+    else:
+        await bot.send_message(msg.from_user.id, "Название:")
+        await msg.answer(name)
+
+         
+    try:
+        photos=imgInside.extend(imgOutside)  
+    except:
+        if imgInside is None:
+            photos=imgOutside
+        else:
+            photos=imgInside
+    
+    postgreWork.add_new_project(userID=msg.from_user.id, 
+                                phone=phone, 
+                                email='',
+                                timeWork=timeWork,
+                                name=name,
+                                address=adress,
+                                photos=photos
+                                )   
+
+
 
 @router.message(lambda message: not re.match(r'https://.*', message.text))
 async def message(msg: Message, state: FSMContext):

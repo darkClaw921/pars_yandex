@@ -11,16 +11,16 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 
-options = Options()
-user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-            'Chrome/123.0.0.0 Safari/537.36'
-options = webdriver.ChromeOptions()
-options.add_argument("--start-maximized")
-options.add_argument('--headless')
-options.add_argument(f'user-agent={user_agent}')
-options.add_argument('--no-sandbox')
-options.add_argument('--disable-dev-shm-usage')
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+# options = Options()
+# user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+#             'Chrome/123.0.0.0 Safari/537.36'
+# options = webdriver.ChromeOptions()
+# options.add_argument("--start-maximized")
+# options.add_argument('--headless')
+# options.add_argument(f'user-agent={user_agent}')
+# options.add_argument('--no-sandbox')
+# options.add_argument('--disable-dev-shm-usage')
+# driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 def scroll_down(element):
     # Прокручиваем страницу вниз
@@ -46,6 +46,41 @@ def scroll_down(element):
 
 
     time.sleep(5)  # Ждем, чтобы страница успела загрузить новые элементы
+
+def get_name():
+    # Ожидаем, пока элемент станет доступным
+    element = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'h1.orgpage-header-view__header[itemprop="name"]'))
+    )
+
+    # Получаем текст элемента
+    text = element.text
+    print("Текст элемента:", text)
+    return text
+
+def get_time_work():
+    #Ожидаем, пока элемент станет доступным
+    
+    element = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'div.business-working-status-view'))
+    )
+
+    # Получаем текст элемента
+    text = element.text
+    print("Время работы:", text)
+    return text
+
+def get_address():
+     # Ожидаем, пока элемент станет доступным
+    element = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'a.orgpage-header-view__address'))
+    )
+
+    # Получаем текст адреса
+    address_text = element.text
+    print("Адрес:", address_text)
+    
+    return address_text
 
 def get_phone():
     try:
@@ -106,6 +141,25 @@ def get_photo_outside():
     pprint(image_urls)
     return image_urls
 
+def get_photo_all():
+
+    # button=driver.find_element(By.XPATH, '//button[span[text()="Exterior"]]')
+    button=driver.find_element(By.XPATH, '//button[span[text()="Все"]]')
+    
+    # Кликаем по кнопке
+    button.click()
+
+    time.sleep(5)
+    # photos=driver.find_elements(By.CLASS_NAME, 'media-gallery _mode_preview _columns_3')
+    # pprint(photos)
+    # Прокручиваем страницу вниз несколько раз
+    # for _ in range(5):  # Прокручиваем 3 раза
+    #     scroll_down()
+    images = driver.find_elements(By.CSS_SELECTOR, 'div.media-wrapper._loaded img.media-wrapper__media')
+    image_urls = [img.get_attribute('src') for img in images[:20]]  # Получаем только первые 10 изображений
+    pprint(image_urls)
+    return image_urls
+
 def get_info(url:str):
     global driver
     options = Options()
@@ -117,7 +171,9 @@ def get_info(url:str):
     options.add_argument(f'user-agent={user_agent}')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--lang=ru')
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
     # driver = webdriver.Chrome()
     # driver.get("https://yandex.ru/navi/org/chaykhana_mayiz/232322945673")
     driver.get(url)
@@ -126,10 +182,30 @@ def get_info(url:str):
     time.sleep(5)   
     try:
         phone=get_phone() 
+        phone=phone.replace('+','')
     except Exception as e:
         print(e)
         phone=None
     # phone=get_phone()
+    try:
+        timeWork=get_time_work()
+    except:
+        timeWork=None
+    try:
+        adress=get_address()
+    except:
+        adress=None
+    try:
+        name=get_name()
+    except:
+        name=None
+
+    # print(timeWork)
+    # print(adress)
+    # print(name)
+
+
+
     try:
         photo_button = driver.find_element(By.XPATH, '//div[@aria-selected="false" and @class="tabs-select-view__title _name_gallery"]')
         photo_button.click() 
@@ -146,6 +222,19 @@ def get_info(url:str):
     except Exception as e:
         print(e)
         imgOutside=None
+        
+    try:
+        imgAll=get_photo_all()
+    except Exception as e:
+        print(e)
+        imgAll=None
+
 
     driver.close()
-    return phone, imgInside, imgOutside
+    # adress, imgInside, imgOutside, name, timeWork, phone
+    # return phone, imgInside, imgOutside
+    return adress, imgInside, imgOutside, imgAll, name, timeWork, phone
+
+if __name__ == '__main__':
+    a=get_info('https://yandex.ru/navi/org/chaykhana_mayiz/232322945673')
+    pprint(a)
