@@ -19,7 +19,7 @@ from loguru import logger
 from workSelenium import get_info
 from pars_avito import get_info_avito
 import postgreWork
-
+import traceback
 load_dotenv()
 TOKEN = os.getenv('TOKEN_BOT_EVENT')
 
@@ -54,6 +54,9 @@ async def cmd_start(msg: types.Message):
         postgreWork.add_new_user(userID=message.from_user.id,
                              nickname= message.from_user.username)
     except Exception as e:
+        logger.error(f"Ошибка при добавлении нового пользователя {message.from_user.id} с ником {message.from_user.username}")
+        logger.error(traceback.print_exc())
+        logger.error(e)
         await msg.reply('Вы уже зарегистрированы')
     
     await msg.reply("""Добро пожаловать!
