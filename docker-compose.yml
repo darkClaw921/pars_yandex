@@ -1,8 +1,8 @@
 version: "3.9"
 services:
   
-  postgres-ys:
-    container_name: postgres-ys
+  postgres:
+    container_name: postgres
     image: postgres:latest
     
     environment:
@@ -11,11 +11,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} 
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
-      - ../DatabasePOSTGRE-YS:/docker-entrypoint-initdb.d
-      - ../habrdb-data-YS:/var/lib/postgresql/data
+      - ../DatabasePOSTGRE:/docker-entrypoint-initdb.d
+      - ../habrdb-data:/var/lib/postgresql/data
     ports:
-      # - "5432:5432"
-      - "5433:5432"
+      - "5432:5432"
+      # - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -30,26 +30,26 @@ services:
           memory: 4G
     # networks:
     #   - postgres
-  # pgadmin:
-  #   container_name: pgadmin_container
-  #   image: dpage/pgadmin4:latest
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL} 
-  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-  #     PGADMIN_CONFIG_SERVER_MODE: "False"
-  #   volumes:
-  #     - pgadmin-data:/var/lib/pgadmin
-  #   ports:
-  #     - "5050:80"
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.5'
-  #         memory: 1G
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL} 
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
 
-  postgres_exporter-ys:
-    container_name: exporter_container-ys
+  postgres_exporter:
+    container_name: exporter_container
     image: prometheuscommunity/postgres-exporter:latest
     environment:
       DATA_SOURCE_URI: "${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/habrdb?sslmode=disable"
@@ -63,58 +63,58 @@ services:
           cpus: '0.2'
           memory: 500M
   
-  redis-ys:
+  redis:
     image: redis:latest
-    container_name: redis1
+    container_name: redis
     volumes:
       - ./redis-data:/data
     restart: unless-stopped
   
-  parser:
-    image: parser
-    volumes:
-      - ./pars_yandex/parser:/app
-      # - ./pyproject.toml:/app/pyproject.toml
-    restart: unless-stopped
-    build:
-      context: ./pars_yandex/parser
-    environment:
-      - REDIS_URL=${REDIS_URL}
+  # parser:
+  #   image: parser
+  #   volumes:
+  #     - ./pars_yandex/parser:/app
+  #     # - ./pyproject.toml:/app/pyproject.toml
+  #   restart: unless-stopped
+  #   build:
+  #     context: ./pars_yandex/parser
+  #   environment:
+  #     - REDIS_URL=${REDIS_URL}
       
-      # - POSTGRES_URL=${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_URL}:5432/${POSTGRES_DB}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_URL=${POSTGRES_URL}
-      - TOKEN_BOT_EVENT=${TOKEN_BOT_EVENT}
+  #     # - POSTGRES_URL=${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_URL}:5432/${POSTGRES_DB}
+  #     - POSTGRES_DB=${POSTGRES_DB}
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - POSTGRES_URL=${POSTGRES_URL}
+  #     - TOKEN_BOT_EVENT=${TOKEN_BOT_EVENT}
 
-      # - SENDER_MESSAGE_URL=${SENDER_MESSAGE_URL}:${PORT_SENDER_MESSAGE}
-      # - GENERATE_ANSWER_URL=${GENERATE_ANSWER_URL}:${PORT_GENERATE_ANSWER}
-      # - PORT_HANDLER_MESSAGE=${PORT_HANDLER_MESSAGE}
-    # ports:
-    #   - 5003:5003
+  #     # - SENDER_MESSAGE_URL=${SENDER_MESSAGE_URL}:${PORT_SENDER_MESSAGE}
+  #     # - GENERATE_ANSWER_URL=${GENERATE_ANSWER_URL}:${PORT_GENERATE_ANSWER}
+  #     # - PORT_HANDLER_MESSAGE=${PORT_HANDLER_MESSAGE}
+  #   # ports:
+  #   #   - 5003:5003
 
-  sender:
-    image: sender
-    volumes:
-      - ./pars_yandex/sender:/app
-      # - ./pyproject.toml:/app/pyproject.toml
-    restart: unless-stopped
-    build:
-      context: ./pars_yandex/sender
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_URL=${POSTGRES_URL}
-      - APLICATION_ID=${APLICATION_ID}
-      - APLICATION_SECRET=${APLICATION_SECRET}
-      - WEBHOOK=${WEBHOOK}
-      - SENDER_BOT_TOKEN=${SENDER_BOT_TOKEN}
-      - TOKEN_YD=${TOKEN_YD}
-      # - OPENAI_API_KEY=${OPENAI_API_KEY}
-      # - VECTOR_DB_WORK_URL=${VECTOR_DB_WORK_URL}:${PORT_VECTOR_DB_WORK}
-      # - PORT_GENERATE_ANSWER=${PORT_GENERATE_ANSWER}
-      # - GRAPHQL=${GRAPHQL}
-    # ports:
-    #   - 5004:5004
+  # sender:
+  #   image: sender
+  #   volumes:
+  #     - ./pars_yandex/sender:/app
+  #     # - ./pyproject.toml:/app/pyproject.toml
+  #   restart: unless-stopped
+  #   build:
+  #     context: ./pars_yandex/sender
+  #   environment:
+  #     - POSTGRES_DB=${POSTGRES_DB}
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - POSTGRES_URL=${POSTGRES_URL}
+  #     - APLICATION_ID=${APLICATION_ID}
+  #     - APLICATION_SECRET=${APLICATION_SECRET}
+  #     - WEBHOOK=${WEBHOOK}
+  #     - SENDER_BOT_TOKEN=${SENDER_BOT_TOKEN}
+  #     - TOKEN_YD=${TOKEN_YD}
+  #     # - OPENAI_API_KEY=${OPENAI_API_KEY}
+  #     # - VECTOR_DB_WORK_URL=${VECTOR_DB_WORK_URL}:${PORT_VECTOR_DB_WORK}
+  #     # - PORT_GENERATE_ANSWER=${PORT_GENERATE_ANSWER}
+  #     # - GRAPHQL=${GRAPHQL}
+  #   # ports:
+  #   #   - 5004:5004
