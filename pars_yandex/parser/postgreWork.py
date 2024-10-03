@@ -88,8 +88,8 @@ def add_new_user(userID:int, nickname:str):
             created_date=datetime.now(),
             id=userID,
             nickname=nickname,
-            all_token=0,
-            all_token_price=0,
+            # all_token=0,
+            # all_token_price=0,
             # payload=''
         )
         session.add(newUser)
