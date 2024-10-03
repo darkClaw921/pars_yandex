@@ -21,7 +21,7 @@ url='localhost'
 
 
 # Создаем подключение к базе данных
-engine = create_engine(f'postgresql://{userName}:{password}@{url}:5433/{db}')
+engine = create_engine(f'postgresql://{userName}:{password}@{url}:5432/{db}')
 # engine = create_engine('mysql://username:password@localhost/games')
 
 
