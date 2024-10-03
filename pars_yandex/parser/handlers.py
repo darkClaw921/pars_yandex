@@ -51,10 +51,10 @@ async def send_photos(msg: Message, photos: list):
 @router.message(Command("start"))
 async def cmd_start(msg: types.Message):
     try:
-        postgreWork.add_new_user(userID=message.from_user.id,
-                             nickname= message.from_user.username)
+        postgreWork.add_new_user(userID=msg.from_user.id,
+                             nickname= msg.from_user.username)
     except Exception as e:
-        logger.error(f"Ошибка при добавлении нового пользователя {message.from_user.id} с ником {message.from_user.username}")
+        logger.error(f"Ошибка при добавлении нового пользователя {msg.from_user.id} с ником {msg.from_user.username}")
         logger.error(traceback.print_exc())
         logger.error(e)
         await msg.reply('Вы уже зарегистрированы')
