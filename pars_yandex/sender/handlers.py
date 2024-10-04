@@ -309,18 +309,18 @@ async def upload_photos(message: types.Message, state: FSMContext):
         folderURL='******'
     else:
         nameProject=project.name   
+        folderURL=project.folder_url
 
-
-        s.add_new_location(name=nameProject,
-                        address='',
-                        phone='',
-                        email='',
-                        folderURL=folderURL,
-                        timeWork='',
-                        status='Новый'
-                        )
-        
-        postgreWork.update_project(projectID=project.id, isAddtoSheet=True)
+    s.add_new_location(name=nameProject,
+                    address='',
+                    phone='',
+                    email='',
+                    folderURL=folderURL,
+                    timeWork='',
+                    status='Новый'
+                    )
+    
+    postgreWork.update_project(projectID=project.id, isAddtoSheet=True)
     # if not project.isAddtoSheet:
         
         # s.add_new_location(name=project.name,
