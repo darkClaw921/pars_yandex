@@ -202,7 +202,10 @@ def update_project(projectID:int,name:str=None, phone:str=None,
 
 def get_last_project_for_user(userID:int)->Project:
     with Session() as session:
-        project=session.query(Project).filter(Project.user_id==userID).order_by(Project.created_date.desc()).first()
+        try:
+            project=session.query(Project).filter(Project.user_id==userID).order_by(Project.created_date.desc()).first()
+        except:
+            project=None
         return project
 
 def get_user(userID:int)->User:

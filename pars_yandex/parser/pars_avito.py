@@ -141,7 +141,7 @@ def get_main_photo():
     # Ожидание появления целевого элемента
     # time.sleep(1)
     scroll_down(image_frame)
-   
+ 
 
 def get_adress():
     global driver

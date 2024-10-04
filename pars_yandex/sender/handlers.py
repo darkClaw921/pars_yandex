@@ -205,7 +205,11 @@ async def upload_photos(message: types.Message, state: FSMContext):
     
     userID=message.from_user.id
 
+     
     project=postgreWork.get_last_project_for_user(userID)
+    if project is None:
+        await message.answer(f"Это правильные данные?\nУ вас данных. Для загрузки просто одних фото нажмите \"НЕТ ❌\"", reply_markup=keyboard)
+        return 0
     dat=f"""{project.name}
 Адрес: {project.address}
 Телефон: {project.phone}
