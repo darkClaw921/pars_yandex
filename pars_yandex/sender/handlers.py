@@ -305,11 +305,14 @@ async def upload_photos(message: types.Message, state: FSMContext):
     
     project=postgreWork.get_last_project_for_user(userID)
     if project is None:
-        nameProject='******'
+        # nameProject='******'
+        nameProject=data['folder']
         folderURL='******'
     else:
         nameProject=project.name   
         folderURL=project.folder_url
+
+    nameProject=data['folder']
 
     s.add_new_location(name=nameProject,
                     address='',
@@ -343,7 +346,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
         await state.clear()
         return 0
     
-    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", keyboard=keyboard2)
+    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск. ура", keyboard=keyboard2)
     # await state.set_state(UploadStates.waiting_for_folder)
     await state.clear()    
     return 0
