@@ -323,6 +323,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
                     status='Новый'
                     )
     
+    project=postgreWork.get_last_project_for_user(userID) 
     postgreWork.update_project(projectID=project.id, isAddtoSheet=True)
     # if not project.isAddtoSheet:
         
