@@ -255,7 +255,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
 async def upload_photos(message: types.Message, state: FSMContext):
     data=await state.get_data()
 
-    keyboard=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Загрузить фото")]], resize_keyboard=True)
+    keyboard1=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Загрузить фото")]], resize_keyboard=True)
     userID=message.from_user.id
 
     project=postgreWork.get_last_project_for_user(userID)
@@ -286,10 +286,10 @@ async def upload_photos(message: types.Message, state: FSMContext):
         folder=data['folder']
     except:
         
-        await message.answer("Загрузка фото завершена", reply_markup=keyboard)
+        await message.answer("Загрузка фото завершена", reply_markup=keyboard1)
         await state.clear()
         return 0
-    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", keyboard=keyboard)
+    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", keyboard=keyboard1)
     # await state.set_state(UploadStates.waiting_for_folder)
     await state.clear()    
     return 0
@@ -299,7 +299,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
 async def upload_photos(message: types.Message, state: FSMContext):
     data=await state.get_data()
 
-    keyboard=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Загрузить фото")]], resize_keyboard=True)
+    keyboard2=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Загрузить фото")]], resize_keyboard=True)
     userID=message.from_user.id
 
     project=postgreWork.get_last_project_for_user(userID)
@@ -333,11 +333,11 @@ async def upload_photos(message: types.Message, state: FSMContext):
         folder=data['folder']
     except:
         
-        await message.answer("Загрузка фото завершена", reply_markup=keyboard)
+        await message.answer("Загрузка фото завершена", reply_markup=keyboard2)
         await state.clear()
         return 0
     
-    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", keyboard=keyboard)
+    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", keyboard=keyboard2)
     # await state.set_state(UploadStates.waiting_for_folder)
     await state.clear()    
     return 0

@@ -71,7 +71,7 @@ class Project(Base):
     address=Column(String)
     description=Column(String)
     photos=Column(ARRAY(String))
-
+    is_add_to_sheet=Column(BOOLEAN)
 
 
 Base.metadata.create_all(engine)
