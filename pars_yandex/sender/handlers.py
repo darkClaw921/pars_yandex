@@ -247,7 +247,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
         await message.answer("Загрузка фото завершена", reply_markup=keyboard)
         await state.clear()
         return 0
-    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", keyboard=keyboard)
+    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", reply_markup=keyboard)
     # await state.set_state(UploadStates.waiting_for_folder)
     await state.clear()    
     return 0
@@ -289,7 +289,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
         await message.answer("Загрузка фото завершена", reply_markup=keyboard1)
         await state.clear()
         return 0
-    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", keyboard=keyboard1)
+    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск.", reply_markup=keyboard1)
     # await state.set_state(UploadStates.waiting_for_folder)
     await state.clear()    
     return 0
@@ -322,9 +322,12 @@ async def upload_photos(message: types.Message, state: FSMContext):
                     timeWork='',
                     status='Новый'
                     )
-    
-    project=postgreWork.get_last_project_for_user(userID) 
-    postgreWork.update_project(projectID=project.id, isAddtoSheet=True)
+    try:
+        # project=postgreWork.get_last_project_for_user(userID) 
+        postgreWork.update_project(projectID=project.id, isAddtoSheet=True)
+    except:
+        1+0
+        
     # if not project.isAddtoSheet:
         
         # s.add_new_location(name=project.name,
@@ -347,7 +350,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
         await state.clear()
         return 0
     
-    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск. ура", keyboard=keyboard2)
+    await message.answer(f"Загрузка фото завершена. Все фото загружены в папку '{folder}' на Яндекс.Диск. ура", reply_markup=keyboard2)
     # await state.set_state(UploadStates.waiting_for_folder)
     await state.clear()    
     return 0
