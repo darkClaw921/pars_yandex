@@ -302,10 +302,15 @@ async def upload_photos(message: types.Message, state: FSMContext):
     keyboard2=ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Загрузить фото")]], resize_keyboard=True)
     userID=message.from_user.id
 
-    project=postgreWork.get_last_project_for_user(userID)
     
+    project=postgreWork.get_last_project_for_user(userID)
+    if project is None:
+        nameProject='******'
+    else:
+        nameProject=project.name   
 
-    s.add_new_location(name=project.name,
+
+    s.add_new_location(name=nameProject,
                     address='',
                     phone='',
                     email='',
