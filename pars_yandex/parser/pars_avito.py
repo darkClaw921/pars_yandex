@@ -277,7 +277,7 @@ def get_info_avito(url:str):
 
     driver.close()
 
-    return adress, photo
+    return adress, photo, 'None', 'None', 'None'
 
 if __name__ == '__main__':
     get_info_avito("https://www.avito.ru/mihnevo/doma_dachi_kottedzhi/dom_1067_m_na_uchastke_10_sot._3039447988?utm_campaign=native&utm_medium=item_page_ios&utm_source=soc_sharing&guests=2")
