@@ -16,8 +16,8 @@ userName = os.environ.get('POSTGRES_USER')
 password = os.environ.get('POSTGRES_PASSWORD')
 db = os.environ.get('POSTGRES_DB')
 url = os.environ.get('POSTGRES_URL')
-url='postgres-ys'
-url='localhost'
+# url='postgres-ys'
+# url='localhost'
 
 
 # Создаем подключение к базе данных

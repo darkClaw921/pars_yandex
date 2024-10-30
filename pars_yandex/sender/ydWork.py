@@ -51,7 +51,7 @@ class YandexDiskManager:
         folderProject=self.yadisk.get_public_meta(publickURL).name
         allPath=self.pathMain+folderProject+'/'+folderName
         
-        
+        publickURL=None 
         try:
             folder_path, publickURL = self.create_folder(allPath)    
             postgreWork.update_project(projectID=projectID, folderURL=publickURL)
@@ -67,18 +67,44 @@ class YandexDiskManager:
             self.upload_file_from_local(fileURL, folder_path,nameFile=fileName)
         # self.upload_file_from_url(folder_path, fileURL, fileName)
         logger.info(f'Файл {fileName} загружен в папку {folder_path}')
+        
+        return folder_path, publickURL
 
 
+
+    #получаем список всех папок в директории 
+    def get_all_folders(self, publickURL)->list:
+        
+        folderProject=self.yadisk.get_public_meta(publickURL).name
+        allPath=self.pathMain+folderProject+'/'
+        print(f'{allPath=}')
+        path=allPath
+        files=self.yadisk.get_meta(path).embedded.items
+        folders=[]
+        for file1 in files:
+            if file1.file is None:
+                pathFile=file1.path.replace('disk:'+path,'')
+                folders.append(pathFile)
+        pprint(folders)
+        return folders 
+    
 if __name__ =='__main__':
     yadisk_manager = YandexDiskManager(APLICATION_ID=APLICATION_ID, APLICATION_SECRET=APLICATION_SECRET, TOKEN_YD=TOKEN_YD, isTest=True)
     # yadisk_manager.yadisk.p
-
-    # a=yadisk_manager.yadisk.get_meta('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 12/')
+    yadisk_manager.get_all_folders('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/')
+    1/0
+    a=yadisk_manager.yadisk.get_meta('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 12/test.jpg')
     # a=yadisk_manager.yadisk.get_public_resources('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 12/')
     # pprint(a.__dict__)
+
+    # b=yadisk_manager.yadisk.get_meta('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 1/test.jpg')
+    b=yadisk_manager.yadisk.get_meta('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/')
     # b=yadisk_manager.yadisk.get_public_download_link(public_key=a.public_key)
-    # print(b)
-    # 1/0
+    # pprint(b.__dict__)
+
+    print(f"{a.md5=}\n{a.sha256}")
+    print(f"{b.md5=}\n{b.sha256}")
+    1/0
 
     public_link='https://disk.yandex.ru/d/RwxAt9uRuesdhQ'
     fileUrl='https://images.cdn-cian.ru/images/dom-aladino-mayskaya-ulica-2202794273-2.jpg'

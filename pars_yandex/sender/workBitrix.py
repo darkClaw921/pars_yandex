@@ -18,12 +18,19 @@ class Deal:
     urlFolder:str='UF_CRM_1665135345460'
     sheetUrl:str='UF_CRM_1718109141725'
 #полуаем все активные сделки у которых заполнено поле UF_CRM_1665135345460 и все пользовательские поля
-async def get_active_deals()->list:
+# async def get_active_deals()->list:
+async def get_active_deals()->dict:
     deals = await bit.get_all('crm.deal.list', params={'filter': {'CLOSED': 'N', f'!={Deal.urlFolder}': None}, 'select': ['*', 'UF_*']})
     deals=deals[:30]
     # pprint(deals[0])
     # pprint(deals)
-    return deals
+
+    dealsDict={}
+    for deal in deals:
+        dealsDict[deal["ID"]]=deal
+
+    # return deals
+    return dealsDict
 
 def prepare_deal_to_text(deals:list)->str:
     """
@@ -39,8 +46,8 @@ def prepare_deal_to_text(deals:list)->str:
 
 async def get_prepare_active_deals()->str:
     deals = await get_active_deals()
-    text=prepare_deal_to_text(deals)
-    
+    # text=prepare_deal_to_text(deals)
+    text='' 
     return text, deals
 
 if __name__ == '__main__':

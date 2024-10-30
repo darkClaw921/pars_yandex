@@ -44,7 +44,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from dotenv import load_dotenv
-from ydWork import YandexDiskManager  # Импортируем менеджер Яндекс Диска
+from ydWork import YandexDiskManager   # Импортируем менеджер Яндекс Диска
 from workBitrix import get_prepare_active_deals, Deal
 import postgreWork
 load_dotenv()
@@ -67,6 +67,80 @@ class UploadStates(StatesGroup):
     waiting_for_photos = State()
     get_deal_id=State()
     folder=State()
+    waiting_for_new_folder = State()
+
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from math import ceil
+
+
+
+class DealPaginator:
+    def __init__(self, deals, page_size=5):
+        self.deals = deals
+        self.page_size = page_size
+        self.total_pages = ceil(len(deals) / page_size)
+
+    def get_page(self, page):
+        start = (page - 1) * self.page_size
+        end = start + self.page_size
+        return self.deals[start:end], page, self.total_pages
+
+    def get_keyboard(self, current_page):
+        builder = InlineKeyboardBuilder()
+        
+        # Кнопки для сделок
+        for deal in self.get_page(current_page)[0]:
+            builder.button(text=f"{deal['TITLE']} (ID: {deal['ID']})", callback_data=f"deal:{deal['ID']}")
+        builder.adjust(1)
+        
+        # Кнопки навигации
+        nav_buttons = []
+        if current_page > 1:
+            nav_buttons.append(InlineKeyboardButton(text="◀️ Назад", callback_data=f"page:{current_page-1}"))
+        nav_buttons.append(InlineKeyboardButton(text=f"{current_page}/{self.total_pages}", callback_data="ignore"))
+        if current_page < self.total_pages:
+            nav_buttons.append(InlineKeyboardButton(text="Вперед ▶️", callback_data=f"page:{current_page+1}"))
+        
+        # Добавляем навигационные кнопки в конец
+        builder.row(*nav_buttons)
+        
+        return builder.as_markup()
+
+class FolderPaginator:
+    def __init__(self, folders, page_size=5):
+        self.folders = folders
+        self.page_size = page_size
+        self.total_pages = ceil(len(folders) / page_size)
+
+    def get_page(self, page):
+        start = (page - 1) * self.page_size
+        end = start + self.page_size
+        return self.folders[start:end], page, self.total_pages
+
+    def get_keyboard(self, current_page):
+        builder = InlineKeyboardBuilder()
+        
+        # Кнопки для папок
+        for folder in self.get_page(current_page)[0]:
+            builder.button(text=folder, callback_data=f"folder:{folder}")
+        builder.adjust(1)
+        
+        # Кнопка для создания новой папки
+        builder.button(text="Создать новую папку", callback_data="new_folder")
+        builder.adjust(1) 
+        # Кнопки навигации
+        nav_buttons = []
+        if current_page > 1:
+            nav_buttons.append(InlineKeyboardButton(text="◀️ Назад", callback_data=f"folderpage:{current_page-1}"))
+        nav_buttons.append(InlineKeyboardButton(text=f"{current_page}/{self.total_pages}", callback_data="ignore"))
+        if current_page < self.total_pages:
+            nav_buttons.append(InlineKeyboardButton(text="Вперед ▶️", callback_data=f"folderpage:{current_page+1}"))
+        
+        # Добавляем навигационные кнопки в конец
+        builder.row(*nav_buttons)
+        
+        return builder.as_markup()
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -85,70 +159,101 @@ async def cmd_start(message: types.Message):
 
 @router.message(F.text == "Загрузить фото")
 async def upload_photos(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    await message.answer("Введите номер папки и название объекта\nНапример: 1 фото стадион зоркий ([номер сделки] [название подпапки]):")
-    deals, dealDict= await get_prepare_active_deals()
-    print(deals)
-    print(repr(deals))  # This will show the raw string, including escape characters
-    try:
-        # deals =re.sub(r'[^\x20-\x7E]', '', deals)  # Remove non-printable characters
-
-        await message.answer(f"{deals}", parse_mode="HTML")
-    except:
-        deals1=f"{deals[:len(deals)//2]}"
-        await message.answer(deals1)
-        deals1=f"{deals[len(deals)//2:]}"
-        await message.answer(deals1)
+    deals, dealDict = await get_prepare_active_deals()
+    paginator = DealPaginator(list(dealDict.values()))
     
+    await message.answer("Выберите сделку:", reply_markup=paginator.get_keyboard(1))
     
-    projectID=postgreWork.get_last_project_for_user(userID=message.from_user.id)
+    projectID = postgreWork.get_last_project_for_user(userID=message.from_user.id)
     
-    if projectID==None:
-        projectID=0
+    if projectID is None:
+        projectID = 0
     else:
-        projectID=projectID.id
+        projectID = projectID.id
     
+    await state.update_data(deals=dealDict, projectID=projectID, paginator=paginator, photos=[])
     await state.set_state(UploadStates.waiting_for_folder)
-    await state.update_data(deals=dealDict, projectID=projectID)
-    # await state.set_state(UploadStates.get_deal_id)
-    return 0
 
 
-
-
-@router.message(UploadStates.waiting_for_folder)
-async def process_folder(message: types.Message, state: FSMContext):
+@router.callback_query(lambda c: c.data.startswith('page:'))
+async def process_page(callback_query: types.CallbackQuery, state: FSMContext):
+    page = int(callback_query.data.split(':')[1])
     data = await state.get_data()
-    numberDeal=int(message.text.split(' ')[0])
-    try:
-        dealID=data['deals'][numberDeal]['ID']
-        dealTitle=data['deals'][numberDeal]['TITLE']
-        dealUrlFolder=data['deals'][numberDeal][Deal.urlFolder]
-    except:
-        await message.answer("Неверный номер сделки")
-        return 0
-    data = await state.update_data(deals=data['deals'][numberDeal])
-    #удаляем номер сделки из названия
-    folderTitle=message.text.replace(f'{numberDeal} ', '')
+    paginator = data['paginator']
     
-    await state.update_data(folder=folderTitle, 
-                            folderTitle=dealTitle,
-                            dealID=dealID,
-                            dealUrlFolder=dealUrlFolder,
-                            photos=[])  # Инициализируем список фотографий
+    await callback_query.message.edit_reply_markup(reply_markup=paginator.get_keyboard(page))
+
+
+@router.callback_query(lambda c: c.data.startswith('deal:'))
+async def process_deal_selection(callback_query: types.CallbackQuery, state: FSMContext):
+    deal_id = callback_query.data.split(':')[1]
+    data = await state.get_data()
+    deals = data['deals']
+    # a=data['folder'] 
+    # pprint(a)
+    selected_deal = next((deal for deal in deals.values() if str(deal['ID']) == deal_id), None)
+    if selected_deal:
+        await state.update_data(selected_deal=selected_deal)
+        
+        # Получаем список папок
+        folders = Yd.get_all_folders(selected_deal[Deal.urlFolder])
+        folder_paginator = FolderPaginator(folders)
+        
+        await state.update_data(folder_paginator=folder_paginator, dealUrlFolder=selected_deal[Deal.urlFolder])
+        await callback_query.message.edit_text("Выберите существующую папку или создайте новую:", reply_markup=folder_paginator.get_keyboard(1))
+        await state.set_state(UploadStates.waiting_for_folder)
+    else:
+        await callback_query.message.answer("Произошла ошибка при выборе сделки. Попробуйте еще раз.")
+
+    await callback_query.answer()
+
+
+@router.callback_query(lambda c: c.data.startswith('folderpage:'))
+async def process_folder_page(callback_query: types.CallbackQuery, state: FSMContext):
+    page = int(callback_query.data.split(':')[1])
+    data = await state.get_data()
+    folder_paginator = data['folder_paginator']
     
-    await message.answer(f"Вы работаете по проекту {dealTitle}.\n[ссылка на папку]({dealUrlFolder})\nТеперь отправьте фотографии (можно несколько):")
-    # await message.answer("Теперь отправьте фотографии (можно несколько):")
+    await callback_query.message.edit_reply_markup(reply_markup=folder_paginator.get_keyboard(page))
+
+
+@router.callback_query(lambda c: c.data.startswith('folder:'))
+async def process_folder_selection(callback_query: types.CallbackQuery, state: FSMContext):
+    folder = callback_query.data.split(':')[1]
+    data = await state.get_data()
+    selected_deal = data['selected_deal']
     
-    # Создаем клавиатуру с кнопкой "Завершить загрузку"
-    # keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-    # keyboard.add(KeyboardButton(text="Завершить загрузку"))
+    await state.update_data(folder=folder)
+    await callback_query.message.answer(f"Вы выбрали папку: {folder}\nТеперь отправьте фотографии (можно несколько):")
     
     keyboard = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Завершить загрузку")]], resize_keyboard=True)
-
-    await message.answer("Вы можете отправить фотографии или нажать кнопку ниже, чтобы завершить загрузку.", reply_markup=keyboard)
+    await callback_query.message.answer("Вы можете отправить фотографии или нажать кнопку ниже, чтобы завершить загрузку.", reply_markup=keyboard)
     await state.set_state(UploadStates.waiting_for_photos)
-    return 0
+
+
+@router.callback_query(lambda c: c.data == 'new_folder')
+async def create_new_folder(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.answer("Введите название новой папки:")
+    await state.set_state(UploadStates.waiting_for_new_folder)
+
+
+@router.message(UploadStates.waiting_for_new_folder)
+async def process_new_folder(message: types.Message, state: FSMContext):
+    new_folder = message.text
+    data = await state.get_data()
+    selected_deal = data['selected_deal']
+    
+    # Здесь нужно добавить логику создания новой папки на Яндекс.Диске
+    # Например: Yd.create_folder(f"{selected_deal[Deal.urlFolder]}/{new_folder}")
+    
+    await state.update_data(folder=new_folder)
+    await message.answer(f"Создана новая папка: {new_folder}\nТеперь отправьте фотографии (можно несколько):")
+    
+    keyboard = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Завершить загрузку")]], resize_keyboard=True)
+    await message.answer("Вы можете отправить фотографии или нажать кнопку ниже, чтобы завершить загрузку.", reply_markup=keyboard)
+    
+    await state.set_state(UploadStates.waiting_for_photos)
+
 
 @router.message(UploadStates.waiting_for_photos, F.photo)
 async def process_photos(message: types.Message, state: FSMContext):
@@ -210,6 +315,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
     if project is None:
         await message.answer(f"Это правильные данные?\nУ вас данных. Для загрузки просто одних фото нажмите \"НЕТ ❌\"", reply_markup=keyboard, parse_mode='HTML')
         return 0
+        
     dat=f"""{project.name}
 Адрес: {project.address}
 Телефон: {project.phone}

@@ -18,6 +18,7 @@ work_dir/
 *.mp3
 *.csv
 *.sh
+*.jpg
 testDocker/
 # *.txt
 session_name.session
