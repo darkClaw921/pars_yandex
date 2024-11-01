@@ -18,7 +18,8 @@ class YandexDiskManager:
         if isTest:
             self.pathMain='/Производственный отдел/ТЕСТИРОВАНИЕ/'
         else:
-            self.pathMain='/Производственный отдел/ПРОЕКТЫ - собираем подборки под проекты, извлекаем отсюда новые/'
+            # self.pathMain='/Производственный отдел/ПРОЕКТЫ - собираем подборки под проекты, извлекаем отсюда новые/'
+            self.pathMain='/Производственный отдел/ПРОЕКТЫ - собираем подборки под проекты, извлекаем отсюда новые/_АКТИВНЫЕ ТЕНДЕРЫ/'
         # url = self.yadisk.get_code_url()
         # print(url)
         # code=input('Введите код: ')
@@ -59,6 +60,7 @@ class YandexDiskManager:
             
         except:
             logger.debug(f'Папка {folderName} уже существует')
+            postgreWork.update_project(projectID=projectID, folderURL=publickURL)
             folder_path = allPath
 
         if fileURL.startswith('http'):

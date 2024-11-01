@@ -60,7 +60,7 @@ bot = Bot(token=BOT_TOKEN)
 # yadisk_manager = YandexDiskManager(token=YANDEX_TOKEN)  # Создаем экземпляр менеджера
 # yandexManager=YandexDiskManager(APLICATION_ID=APLICATION_ID, APLICATION_SECRET=APLICATION_SECRET, TOKEN_YD=TOKEN_YD)
 
-Yd=YandexDiskManager(APLICATION_ID=APLICATION_ID, APLICATION_SECRET=APLICATION_SECRET, TOKEN_YD=TOKEN_YD, isTest=True)
+Yd=YandexDiskManager(APLICATION_ID=APLICATION_ID, APLICATION_SECRET=APLICATION_SECRET, TOKEN_YD=TOKEN_YD, isTest=False)
 
 class UploadStates(StatesGroup):
     waiting_for_folder = State()
@@ -283,7 +283,7 @@ async def process_photos(message: types.Message, state: FSMContext):
     pprint(photos)
 
 
-    Yd.create_folder_and_upload_file(publickURL=data['dealUrlFolder'], 
+    folder_path, publickURL = Yd.create_folder_and_upload_file(publickURL=data['dealUrlFolder'], 
                                                     folderName=folder, 
                                                     fileName=filename, 
                                                     fileURL=pathFile,
