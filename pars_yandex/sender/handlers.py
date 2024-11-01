@@ -196,7 +196,12 @@ async def process_deal_selection(callback_query: types.CallbackQuery, state: FSM
         await state.update_data(selected_deal=selected_deal)
         
         # Получаем список папок
-        folders = Yd.get_all_folders(selected_deal[Deal.urlFolder])
+        pprint(selected_deal)
+        try:
+            folders = Yd.get_all_folders(selected_deal[Deal.urlFolder])
+        except:
+            await callback_query.message.answer(f"Не удалось найти папку по пути {Yd.pathMain} \nпроверте корректность ссылки в сделке (https://yadi.sk/d/_6GQU5TALotu1Q) и \nрасположение папки проекта на диске")
+
         folder_paginator = FolderPaginator(folders)
         
         await state.update_data(folder_paginator=folder_paginator, dealUrlFolder=selected_deal[Deal.urlFolder])

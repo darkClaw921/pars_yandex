@@ -91,9 +91,9 @@ class YandexDiskManager:
         return folders 
     
 if __name__ =='__main__':
-    yadisk_manager = YandexDiskManager(APLICATION_ID=APLICATION_ID, APLICATION_SECRET=APLICATION_SECRET, TOKEN_YD=TOKEN_YD, isTest=True)
+    yadisk_manager = YandexDiskManager(APLICATION_ID=APLICATION_ID, APLICATION_SECRET=APLICATION_SECRET, TOKEN_YD=TOKEN_YD, isTest=False)
     # yadisk_manager.yadisk.p
-    yadisk_manager.get_all_folders('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/')
+    yadisk_manager.get_all_folders('https://disk.yandex.ru/d/3WffDvblGewifg')
     1/0
     a=yadisk_manager.yadisk.get_meta('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 12/test.jpg')
     # a=yadisk_manager.yadisk.get_public_resources('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 12/')
