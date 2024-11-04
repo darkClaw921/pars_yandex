@@ -18,6 +18,8 @@ work_dir/
 *.mp3
 *.csv
 *.sh
+*.db
+*.png
 *.jpg
 testDocker/
 # *.txt
