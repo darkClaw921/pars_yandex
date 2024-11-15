@@ -293,69 +293,95 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 folders_with_similar[folder_path]['similar'].append(match)
             
             # Получаем все файлы из каждой папки, где есть совпадения
+            total_files_to_move = 0
             for folder_path in folders_with_similar:
                 all_files = finder.get_all_files_from_folder(folder_path, set())
                 folders_with_similar[folder_path]['all_files'] = all_files
+                # Подсчитываем файлы для переноса
+                similar_files = set(m['file1'] for m in folders_with_similar[folder_path]['similar'])
+                remaining_files = [f for f in all_files if os.path.basename(f) not in similar_files]
+                total_files_to_move += len(remaining_files)
             
-            # Формируем сообщение о результатах
-            text_parts = ["Найдены похожие фотографии:\n\n"]
-            current_part = ""
+            # Сначала отправляем общую сводку
+            summary_text = (
+                f"📊 Общая информация:\n"
+                f"Найдено {len(similar_photos)} похожих фотографий в {len(folders_with_similar)} папках\n"
+                f"Всего файлов для переноса: {total_files_to_move}\n\n"
+                f"Детальная информация по папкам:"
+            )
+            await message.answer(summary_text)
+            
+            # Формируем и отправляем детальную информацию по каждой папке
             sent_messages = []
-            
             for folder_path, folder_data in folders_with_similar.items():
-                folder_text = f"В папке: {folder_path}\n"
-                folder_text += "Найдены похожие:\n"
+                folder_text = f"\n📁 Папка: {folder_path}\n"
+                folder_text += "Найдены похожие:\n\n"
                 
                 for match in folder_data['similar']:
                     match_text = (
                         f"Файл: {match['file1']}\n"
+                        f"Путь: {match['full_path1']}\n"
                         f"Похож на: {match['file2']}\n"
-                        f"Схожесть: {match['similarity']:.2f}%\n"
+                        f"Путь: {match['full_path2']}\n"
+                        f"Схожесть: {match['similarity']:.2f}%\n\n"
                     )
-                    folder_text += match_text
+                    
+                    # Если текущее сообщение станет слишком длинным, отправляем его
+                    if len(folder_text + match_text) > 4000:
+                        sent_msg = await message.answer(folder_text)
+                        sent_messages.append(sent_msg.message_id)
+                        folder_text = match_text
+                    else:
+                        folder_text += match_text
                 
+                # Добавляем информацию об оставшихся файлах
                 remaining_files = [f for f in folder_data['all_files'] 
-                                 if os.path.basename(f) not in [m['file1'] for m in folder_data['similar']]]
-                folder_text += f"\nОстальные файлы в этой папке ({len(remaining_files)} шт):\n"
+                                 if os.path.basename(f) not in 
+                                 [m['file1'] for m in folder_data['similar']]]
+                
+                files_info = f"\nОстальные файлы в этой папке ({len(remaining_files)} шт):\n"
                 for file in remaining_files:
-                    folder_text += f"- {os.path.basename(file)}\n"
+                    file_info = f"- {os.path.basename(file)}\n  Путь: {file}\n"
+                    if len(folder_text + files_info + file_info) > 4000:
+                        folder_text += files_info
+                        sent_msg = await message.answer(folder_text)
+                        sent_messages.append(sent_msg.message_id)
+                        folder_text = file_info
+                    else:
+                        files_info += file_info
                 
-                if len(current_part + folder_text) > 4000:
-                    text_parts.append(current_part)
-                    current_part = folder_text
-                else:
-                    current_part += folder_text
+                folder_text += files_info
+                if folder_text:
+                    sent_msg = await message.answer(folder_text)
+                    sent_messages.append(sent_msg.message_id)
             
-            if current_part:
-                text_parts.append(current_part)
-            
-            # Отправляем сообщения частями
-            for part in text_parts:
-                sent_msg = await message.answer(part, parse_mode='HTML') #обязательно HTML
-                sent_messages.append(sent_msg.message_id)
-            
-            # Создаем клавиатуру для выбора папок с короткими идентификаторами
+            # Создаем клавиатуру для выбора папок
             keyboard = InlineKeyboardBuilder()
-            folder_mapping = {}  # Словарь для хранения соответствия ID и путей
+            folder_mapping = {}
             
-            for idx, folder_path in enumerate(folders_with_similar.keys(), 1):
-                folder_name = os.path.basename(folder_path)
-                folder_id = f"f{idx}"  # Короткий ID для папки
-                folder_mapping[folder_id] = folder_path
+            for idx, (source_folder_path, folder_data) in enumerate(folders_with_similar.items(), 1):
+                source_folder_name = os.path.basename(source_folder_path)
+                target_folder_name = os.path.basename(second_folder_path)
+                folder_id = f"f{idx}"
+                folder_mapping[folder_id] = source_folder_path
                 
-                remaining_files = len([f for f in folders_with_similar[folder_path]['all_files'] 
+                remaining_files = len([f for f in folder_data['all_files'] 
                                     if os.path.basename(f) not in 
-                                    [m['file1'] for m in folders_with_similar[folder_path]['similar']]])
+                                    [m['file1'] for m in folder_data['similar']]])
+                
+                button_text = (
+                    f"Из {source_folder_name[:15]}{'...' if len(source_folder_name) > 15 else ''} "
+                    f"({remaining_files} шт)"
+                )
                 
                 keyboard.button(
-                    text=f"Перенести из {folder_name} ({remaining_files} файлов)", 
+                    text=button_text,
                     callback_data=f"move:{folder_id}"
                 )
             
             keyboard.button(text="Отмена", callback_data="cancel")
             keyboard.adjust(1)
             
-            # Сохраняем маппинг в состоянии
             await state.update_data(
                 sent_messages=sent_messages,
                 second_folder_path=second_folder_path,
@@ -364,14 +390,16 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             )
             
             await message.answer(
-                "Выберите папку, из которой нужно перенести оставшиеся файлы:",
+                f"Выберите папку для переноса файлов в {os.path.basename(second_folder_path)}:",
                 reply_markup=keyboard.as_markup()
             )
             await state.set_state(UploadStates.confirm_move)
         else:
-            await status_message.edit_text("Похожих фотографий не найдено")
+            if status_message:
+                await status_message.edit_text("Похожих фотографий не найдено")
+            else:
+                await message.answer("Похожих фотографий не найдено")
             await state.clear()
-            
     except Exception as e:
         await message.answer(f"Ошибка при сравнении папок: {str(e)}")
         await state.clear()
