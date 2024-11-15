@@ -10,6 +10,7 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 import time
 import requests
+import asyncio
 
 load_dotenv()
 
@@ -282,3 +283,209 @@ class YandexImageSimilarityFinder:
         except Exception as e:
             logger.error(f"Ошибка при загрузке файла {local_image_path}: {str(e)}")
             return False
+
+    def is_folder_in_database(self, folder_path):
+        """Проверяет, есть ли папка в базе данных"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT COUNT(*) FROM images WHERE folder_path LIKE ?', (f"{folder_path}%",))
+            count = cursor.fetchone()[0]
+            return count > 0
+
+    def compare_folders(self, folder1_path, folder2_path, threshold=75):
+        """Сравнивает две папки и находит похожие фотографии"""
+        similar_photos = []
+        logger.info(f"Сравниваю папки:\n{folder1_path}\n{folder2_path}")
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Проверяем содержимое базы данных
+            cursor.execute('SELECT COUNT(*) FROM images')
+            total_images = cursor.fetchone()[0]
+            logger.info(f"Всего изображений в базе данных: {total_images}")
+            
+            # Получаем все фотографии из первой папки и её подпапок
+            query1 = 'SELECT image_path, histogram FROM images WHERE folder_path LIKE ? OR image_path LIKE ?'
+            pattern1 = f"{folder1_path}%"
+            cursor.execute(query1, (pattern1, pattern1))
+            folder1_photos = cursor.fetchall()
+            logger.info(f"SQL запрос для первой папки: {query1} с паттерном {pattern1}")
+            logger.info(f"Найдено {len(folder1_photos)} фото в первой апке")
+            if len(folder1_photos) == 0:
+                # Выводим все пути в базе для отладки
+                cursor.execute('SELECT DISTINCT folder_path FROM images')
+                all_paths = cursor.fetchall()
+                logger.info("Существующие пути в базе данных:")
+                for path in all_paths:
+                    logger.info(path[0])
+            
+            # Получаем все фотографии из второй папки и её подпапок
+            query2 = 'SELECT image_path, histogram FROM images WHERE folder_path LIKE ? OR image_path LIKE ?'
+            pattern2 = f"{folder2_path}%"
+            cursor.execute(query2, (pattern2, pattern2))
+            folder2_photos = cursor.fetchall()
+            logger.info(f"SQL запрос для второй папки: {query2} с паттерном {pattern2}")
+            logger.info(f"Найдено {len(folder2_photos)} фото во второй папке")
+            if len(folder2_photos) == 0:
+                cursor.execute('SELECT DISTINCT folder_path FROM images')
+                all_paths = cursor.fetchall()
+                logger.info("Существующие пути в базе данных:")
+                for path in all_paths:
+                    logger.info(path[0])
+            
+            if not folder1_photos or not folder2_photos:
+                logger.warning("Одна или обе папки пусты в базе данных")
+                return similar_photos
+            
+            # Сравниваем каждую фотографию из первой папки с каждой из второй
+            total_comparisons = len(folder1_photos) * len(folder2_photos)
+            current_comparison = 0
+            
+            for path1, hist1_blob in folder1_photos:
+                hist1 = pickle.loads(hist1_blob)
+                
+                for path2, hist2_blob in folder2_photos:
+                    current_comparison += 1
+                    if current_comparison % 100 == 0:
+                        logger.info(f"Прогресс сравнения: {current_comparison}/{total_comparisons}")
+                    
+                    hist2 = pickle.loads(hist2_blob)
+                    similarity = self.calculate_similarity(hist1, hist2)
+                    
+                    if similarity >= threshold:
+                        similar_photos.append({
+                            'file1': os.path.basename(path1),
+                            'file2': os.path.basename(path2),
+                            'similarity': similarity,
+                            'full_path1': path1,
+                            'full_path2': path2
+                        })
+                        logger.info(f"Найдено совпадение: {path1} и {path2} ({similarity:.2f}%)")
+        
+        logger.info(f"Найдено {len(similar_photos)} похожих фотографий")
+        return similar_photos
+
+    def get_all_files_from_folder(self, folder_path, exclude_files):
+        """Получает список всех файлов из папки, исключая указанные"""
+        files = []
+        for item in self.yadisk.get_meta(folder_path).embedded.items:
+            if item.file is not None and item.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+                if os.path.basename(item.path) not in exclude_files:
+                    files.append(item.path)
+        return files
+
+    def move_file(self, source_path, target_folder):
+        """Перемещает файл в указанную папку"""
+        try:
+            file_name = os.path.basename(source_path)
+            target_path = f"{target_folder}/{file_name}"
+            
+            # Если файл с таким именем уже существует, добавляем timestamp
+            try:
+                self.yadisk.get_meta(target_path)
+                name, ext = os.path.splitext(file_name)
+                target_path = f"{target_folder}/{name}_{int(time.time())}{ext}"
+            except:
+                pass
+            
+            self.yadisk.move(source_path, target_path)
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при перемещении файла {source_path}: {str(e)}")
+            return False
+
+    def count_files_recursive(self, path):
+        """Рекурсивно подсчитывает количество файлов в папке и подпапках"""
+        total = 0
+        try:
+            items = self.yadisk.get_meta(path).embedded.items
+            for item in items:
+                if item.file is not None and item.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+                    total += 1
+                elif item.file is None:  # Это папка
+                    total += self.count_files_recursive(item.path)
+        except Exception as e:
+            logger.error(f"Ошибка при подсчете файлов в {path}: {str(e)}")
+        return total
+
+    async def scan_directory_async(self, public_link, progress_callback):
+        """Асинхронно сканирует директорию на Яндекс.Диске"""
+        try:
+            logger.info(f"Начинаем сканирование директории по ссылке: {public_link}")
+            
+            folder_project = self.yadisk.get_public_meta(public_link).name
+            all_path = self.pathMain + folder_project + '/'
+            start_time = time.time()
+            
+            # Подсчитываем общее количество файлов
+            total_files = self.count_files_recursive(all_path)  # Используем метод класса
+            logger.info(f"Всего найдено файлов: {total_files}")
+            
+            if total_files == 0:
+                logger.warning("Не найдено файлов для обработки")
+                return False
+            
+            processed_files = [0]  # Используем список для передачи по ссылке
+            files_added = [0]  # Счетчик добавленных файлов
+            
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                await self.scan_folder_recursive(all_path, conn, cursor, processed_files, total_files, files_added, start_time, progress_callback)
+            
+            logger.info(f"Сканирование завершено. Обработано {processed_files[0]} файлов, добавлено в базу {files_added[0]}")
+            return files_added[0] > 0  # Возвращаем True, если были добавлены файлы
+            
+        except Exception as e:
+            logger.error(f"Ошибка при сканировании директории: {str(e)}")
+            return False
+
+    async def scan_folder_recursive(self, path, conn, cursor, processed_files, total_files, files_added, start_time, progress_callback):
+        """Рекурсивно сканирует папку и её подпапки"""
+        try:
+            items = self.yadisk.get_meta(path).embedded.items
+            for item in items:
+                if item.file is not None and item.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+                    try:
+                        # Проверяем, есть ли уже файл в базе
+                        cursor.execute('SELECT COUNT(*) FROM images WHERE image_path = ?', (item.path,))
+                        if cursor.fetchone()[0] == 0:
+                            download_link = self.yadisk.get_download_link(item.path)
+                            
+                            response = requests.get(download_link)
+                            if response.status_code == 200:
+                                image_data = response.content
+                                histogram = self.calculate_histogram(image_data)
+                                if histogram:
+                                    cursor.execute(
+                                        'INSERT INTO images (image_path, folder_path, histogram, md5_hash) VALUES (?, ?, ?, ?)',
+                                        (item.path, path, histogram, item.md5)
+                                    )
+                                    conn.commit()
+                                    files_added[0] += 1
+                                    logger.info(f"Добавлен файл: {item.path} в папке: {path}")
+                    
+                        processed_files[0] += 1
+                        # Вычисляем оставшееся время
+                        elapsed_time = time.time() - start_time
+                        files_per_second = processed_files[0] / elapsed_time if elapsed_time > 0 else 0
+                        remaining_files = total_files - processed_files[0]
+                        estimated_time = remaining_files / files_per_second if files_per_second > 0 else 0
+                        
+                        # Форматируем время
+                        estimated_minutes = int(estimated_time / 60)
+                        estimated_seconds = int(estimated_time % 60)
+                        time_str = f"{estimated_minutes}м {estimated_seconds}с"
+                        
+                        await progress_callback(processed_files[0], total_files, time_str)
+                        await asyncio.sleep(0.1)
+                    
+                    except Exception as e:
+                        logger.error(f"Ошибка при обработке файла {item.name}: {str(e)}")
+                        continue
+                    
+                elif item.file is None:  # Это папка
+                    await self.scan_folder_recursive(item.path, conn, cursor, processed_files, total_files, files_added, start_time, progress_callback)
+                
+        except Exception as e:
+            logger.error(f"Ошибка при сканировании папки {path}: {str(e)}")

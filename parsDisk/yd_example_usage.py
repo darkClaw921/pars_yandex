@@ -37,7 +37,7 @@ def check_local_image(finder, image_path):
         if len(folders) > 1:
             while True:
                 try:
-                    folder_idx = int(input("\nВыберите номер папки для загрузки (0 для отмены): "))
+                    folder_idx = int(input("\nВыберите номер папки для загрузки (0 для отмены или 'n' для создания новой папки): "))
                     if folder_idx == 0:
                         print("Загрузка отменена")
                         return
@@ -47,7 +47,10 @@ def check_local_image(finder, image_path):
                     else:
                         print("Неверный номер папки")
                 except ValueError:
-                    print("Пожалуйста, введите число")
+                    answer = input("Создать новую папку? (y/n): ")
+                    if answer.lower() == 'y':
+                        return create_new_folder(finder, image_path)
+                    print("Пожалуйста, введите число или 'n' для создания новой папки")
         else:
             selected_folder = list(folders.keys())[0]
 
@@ -62,6 +65,32 @@ def check_local_image(finder, image_path):
             print("Загрузка отменена")
     else:
         print("Похожих изображений не найдено")
+        answer = input("Хотите создать новую папку для этого изображения? (y/n): ")
+        if answer.lower() == 'y':
+            create_new_folder(finder, image_path)
+
+def create_new_folder(finder, image_path):
+    """Создание новой папки и загрузка изображения"""
+    folder_name = input("Введите название новой папки: ")
+    if not folder_name:
+        print("Название папки не может быть пустым")
+        return
+    
+    # Создаем полный путь к новой папке
+    new_folder_path = os.path.join(finder.pathMain, 'ТЕСТИРУЕМ БОТА - 1', folder_name)
+    
+    try:
+        # Создаем папку на Яндекс.Диске
+        finder.yadisk.mkdir(new_folder_path)
+        print(f"Создана новая папка: {new_folder_path}")
+        
+        # Загружаем файл в новую папку
+        if finder.upload_to_folder(image_path, new_folder_path):
+            print("Файл успешно загружен в новую папку и добавлен в базу данных!")
+        else:
+            print("Ошибка при загрузке файла в новую папку.")
+    except Exception as e:
+        print(f"Ошибка при создании папки: {str(e)}")
 
 def main():
     finder = YandexImageSimilarityFinder(bins=16)
