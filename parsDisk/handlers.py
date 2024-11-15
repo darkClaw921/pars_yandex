@@ -216,9 +216,13 @@ async def process_second_folder(message: types.Message, state: FSMContext):
         first_folder_exists = finder.is_folder_in_database(first_folder_path)
         second_folder_exists = finder.is_folder_in_database(second_folder_path)
         
+        logger.info(f"Первая папка {first_folder_path}: {'найдена' if first_folder_exists else 'не найдена'} в базе")
+        logger.info(f"Вторая папка {second_folder_path}: {'найдена' if second_folder_exists else 'не найдена'} в базе")
+        
         scan_success = True
         
         if not first_folder_exists:
+            await status_message.edit_text(f"Первая папка не найдена в базе, начинаю сканирование...")
             progress_text = "Сканирую первую папку:\n[□□□□□□□□□□] 0% (осталось: --)"
             await status_message.edit_text(progress_text)
             
@@ -235,8 +239,12 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 await state.clear()
                 return
             await status_message.edit_text("Первая папка отсканирована ✅")
+            # Проверяем еще раз после сканирования
+            first_folder_exists = finder.is_folder_in_database(first_folder_path)
+            logger.info(f"Повторная проверка первой папки: {'найдена' if first_folder_exists else 'не найдена'}")
         
         if not second_folder_exists:
+            await status_message.edit_text(f"Вторая папка не найдена в базе, начинаю сканирование...")
             progress_text = "Сканирую вторую папку:\n[□□□□□□□□□□] 0% (осталось: --)"
             await status_message.edit_text(progress_text)
             
@@ -253,13 +261,18 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 await state.clear()
                 return
             await status_message.edit_text("Вторая папка отсканирована ✅")
+            # Проверяем еще раз после сканирования
+            second_folder_exists = finder.is_folder_in_database(second_folder_path)
+            logger.info(f"Повторная проверка второй папки: {'найдена' if second_folder_exists else 'не найдена'}")
         
         # Проверяем еще раз наличие папок в базе
-        first_folder_exists = finder.is_folder_in_database(first_folder_path)
-        second_folder_exists = finder.is_folder_in_database(second_folder_path)
-        
         if not first_folder_exists or not second_folder_exists:
-            await status_message.edit_text("❌ Ошибка: папки не найдены в базе после сканирования")
+            error_text = "❌ Ошибка: "
+            if not first_folder_exists:
+                error_text += "первая папка не найдена в базе. "
+            if not second_folder_exists:
+                error_text += "вторая папка не найдена в базе. "
+            await status_message.edit_text(error_text)
             await state.clear()
             return
         
@@ -657,7 +670,7 @@ async def process_new_folder(message: types.Message, state: FSMContext):
         for photo_path in photos:
             if finder.upload_to_folder(photo_path, folder_path):
                 success_count += 1
-                os.remove(photo_path)  # Удаляем локальный файл ��осле загрузки
+                os.remove(photo_path)  # Удаляем локальный файл осле загрузки
         
         keyboard = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text="Загрузить фото")]], 

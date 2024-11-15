@@ -92,7 +92,7 @@ class YandexImageSimilarityFinder:
         processed_files = 0
         
         # Подсчитываем общее количество файлов
-        for folder in tqdm(folders, desc="Сканирование папок"):
+        for folder in tqdm(folders, desc="Сканиров��ние папок"):
             current_path = all_path + folder
             try:
                 files = self.yadisk.get_meta(current_path).embedded.items
@@ -286,11 +286,35 @@ class YandexImageSimilarityFinder:
 
     def is_folder_in_database(self, folder_path):
         """Проверяет, есть ли папка в базе данных"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT COUNT(*) FROM images WHERE folder_path LIKE ?', (f"{folder_path}%",))
-            count = cursor.fetchone()[0]
-            return count > 0
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                # Проверяем наличие файлов в папке и её подпапках с учетом префикса "disk:"
+                patterns = [
+                    f"{folder_path}%",  # без префикса
+                    f"disk:{folder_path}%"  # с префиксом
+                ]
+                cursor.execute('''
+                    SELECT COUNT(*) FROM images 
+                    WHERE image_path LIKE ? OR image_path LIKE ?
+                    OR folder_path LIKE ? OR folder_path LIKE ?
+                ''', (*patterns, *patterns))
+                count = cursor.fetchone()[0]
+                
+                logger.info(f"Проверка папки {folder_path} в базе данных")
+                logger.info(f"Найдено {count} файлов")
+                
+                # Выводим все пути в базе для отладки
+                cursor.execute('SELECT DISTINCT folder_path FROM images')
+                all_paths = cursor.fetchall()
+                logger.info("Существующие пути в базе данных:")
+                for path in all_paths:
+                    logger.info(path[0])
+                
+                return count > 0
+        except Exception as e:
+            logger.error(f"Ошибка при проверке папки в базе данных: {str(e)}")
+            return False
 
     def compare_folders(self, folder1_path, folder2_path, threshold=75):
         """Сравнивает две папки и находит похожие фотографии"""
@@ -306,33 +330,28 @@ class YandexImageSimilarityFinder:
             logger.info(f"Всего изображений в базе данных: {total_images}")
             
             # Получаем все фотографии из первой папки и её подпапок
-            query1 = 'SELECT image_path, histogram FROM images WHERE folder_path LIKE ? OR image_path LIKE ?'
-            pattern1 = f"{folder1_path}%"
-            cursor.execute(query1, (pattern1, pattern1))
+            patterns1 = [f"{folder1_path}%", f"disk:{folder1_path}%"]
+            query1 = '''
+                SELECT image_path, histogram FROM images 
+                WHERE image_path LIKE ? OR image_path LIKE ?
+                OR folder_path LIKE ? OR folder_path LIKE ?
+            '''
+            cursor.execute(query1, (*patterns1, *patterns1))
             folder1_photos = cursor.fetchall()
-            logger.info(f"SQL запрос для первой папки: {query1} с паттерном {pattern1}")
-            logger.info(f"Найдено {len(folder1_photos)} фото в первой апке")
-            if len(folder1_photos) == 0:
-                # Выводим все пути в базе для отладки
-                cursor.execute('SELECT DISTINCT folder_path FROM images')
-                all_paths = cursor.fetchall()
-                logger.info("Существующие пути в базе данных:")
-                for path in all_paths:
-                    logger.info(path[0])
+            logger.info(f"SQL запрос для первой папки: {query1}")
+            logger.info(f"Найдено {len(folder1_photos)} фото в первой папке")
             
             # Получаем все фотографии из второй папки и её подпапок
-            query2 = 'SELECT image_path, histogram FROM images WHERE folder_path LIKE ? OR image_path LIKE ?'
-            pattern2 = f"{folder2_path}%"
-            cursor.execute(query2, (pattern2, pattern2))
+            patterns2 = [f"{folder2_path}%", f"disk:{folder2_path}%"]
+            query2 = '''
+                SELECT image_path, histogram FROM images 
+                WHERE image_path LIKE ? OR image_path LIKE ?
+                OR folder_path LIKE ? OR folder_path LIKE ?
+            '''
+            cursor.execute(query2, (*patterns2, *patterns2))
             folder2_photos = cursor.fetchall()
-            logger.info(f"SQL запрос для второй папки: {query2} с паттерном {pattern2}")
+            logger.info(f"SQL запрос для второй папки: {query2}")
             logger.info(f"Найдено {len(folder2_photos)} фото во второй папке")
-            if len(folder2_photos) == 0:
-                cursor.execute('SELECT DISTINCT folder_path FROM images')
-                all_paths = cursor.fetchall()
-                logger.info("Существующие пути в базе данных:")
-                for path in all_paths:
-                    logger.info(path[0])
             
             if not folder1_photos or not folder2_photos:
                 logger.warning("Одна или обе папки пусты в базе данных")
@@ -447,8 +466,11 @@ class YandexImageSimilarityFinder:
             for item in items:
                 if item.file is not None and item.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
                     try:
-                        # Проверяем, есть ли уже файл в базе
-                        cursor.execute('SELECT COUNT(*) FROM images WHERE image_path = ?', (item.path,))
+                        # Проверяем оба варианта пути
+                        cursor.execute(
+                            'SELECT COUNT(*) FROM images WHERE image_path = ? OR image_path = ?', 
+                            (item.path, f"disk:{item.path}")
+                        )
                         if cursor.fetchone()[0] == 0:
                             download_link = self.yadisk.get_download_link(item.path)
                             
@@ -457,13 +479,15 @@ class YandexImageSimilarityFinder:
                                 image_data = response.content
                                 histogram = self.calculate_histogram(image_data)
                                 if histogram:
+                                    # Сохраняем путь без префикса "disk:"
+                                    clean_path = item.path.replace('disk:', '')
                                     cursor.execute(
                                         'INSERT INTO images (image_path, folder_path, histogram, md5_hash) VALUES (?, ?, ?, ?)',
-                                        (item.path, path, histogram, item.md5)
+                                        (clean_path, path, histogram, item.md5)
                                     )
                                     conn.commit()
                                     files_added[0] += 1
-                                    logger.info(f"Добавлен файл: {item.path} в папке: {path}")
+                                    logger.info(f"Добавлен файл: {clean_path} в папке: {path}")
                     
                         processed_files[0] += 1
                         # Вычисляем оставшееся время
