@@ -50,6 +50,25 @@ class YandexImageSimilarityFinder:
                     md5_hash TEXT NOT NULL
                 )
             ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS folder_tags (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    folder_path TEXT NOT NULL,
+                    tag TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS folder_status (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source_folder TEXT NOT NULL,
+                    target_folder TEXT NOT NULL,
+                    new_path TEXT,
+                    status TEXT NOT NULL,
+                    processed_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
 
     def calculate_histogram(self, image_data):
         """Вычисляет RGB гистограмму изображения из бинарных данных"""
@@ -92,7 +111,7 @@ class YandexImageSimilarityFinder:
         processed_files = 0
         
         # Подсчитываем общее количество файлов
-        for folder in tqdm(folders, desc="Сканиров��ние папок"):
+        for folder in tqdm(folders, desc="Сканировние папок"):
             current_path = all_path + folder
             try:
                 files = self.yadisk.get_meta(current_path).embedded.items
@@ -152,7 +171,7 @@ class YandexImageSimilarityFinder:
         similarity = 100 * np.exp(-chi_square)
         return similarity
 
-    def find_similar_images(self, file_path, threshold=75):
+    def find_similar_images(self, file_path, threshold=91):
         """Ищет похожие изображения в базе данных"""
         try:
             response = self.yadisk.download(file_path, None)
@@ -196,7 +215,7 @@ class YandexImageSimilarityFinder:
             logger.error(f"Ошибка при поиске похожих изображений: {str(e)}")
             return None
 
-    def check_local_image(self, local_image_path, threshold=75):
+    def check_local_image(self, local_image_path, threshold=91):
         """Проверяет локальный файл на наличие похожих в Яндекс.Диске"""
         try:
             with open(local_image_path, 'rb') as f:
@@ -313,10 +332,10 @@ class YandexImageSimilarityFinder:
                 
                 return count > 0
         except Exception as e:
-            logger.error(f"Ошибка при проверке папки в базе данных: {str(e)}")
+            logger.error(f"Ошибка при проверк папки в базе данных: {str(e)}")
             return False
 
-    def compare_folders(self, folder1_path, folder2_path, threshold=75):
+    def compare_folders(self, folder1_path, folder2_path, threshold=91):
         """Сравнивает две папки и находит похожие фотографии"""
         similar_photos = []
         logger.info(f"Сравниваю папки:\n{folder1_path}\n{folder2_path}")
@@ -400,7 +419,7 @@ class YandexImageSimilarityFinder:
             file_name = os.path.basename(source_path)
             target_path = f"{target_folder}/{file_name}"
             
-            # Если файл с таким именем уже существует, добавляем timestamp
+            # Если файл с таким именем уе существует, добавляем timestamp
             try:
                 self.yadisk.get_meta(target_path)
                 name, ext = os.path.splitext(file_name)
@@ -490,7 +509,7 @@ class YandexImageSimilarityFinder:
                                     logger.info(f"Добавлен файл: {clean_path} в папке: {path}")
                     
                         processed_files[0] += 1
-                        # Вычисляем оставшееся время
+                        # Вычисляем оствшееся время
                         elapsed_time = time.time() - start_time
                         files_per_second = processed_files[0] / elapsed_time if elapsed_time > 0 else 0
                         remaining_files = total_files - processed_files[0]
@@ -513,3 +532,246 @@ class YandexImageSimilarityFinder:
                 
         except Exception as e:
             logger.error(f"Ошибка при сканировании папки {path}: {str(e)}")
+
+    def get_public_link(self, path):
+        """Получает публичную ссылку на файл или папку"""
+        try:
+            # Проверяем, есть ли уже публичная ссылка
+            resource = self.yadisk.get_meta(path)
+            if not resource.public_url:
+                resource = self.yadisk.publish(path)
+            return resource.public_url
+        except Exception as e:
+            logger.error(f"Ошибка при получении публичной ссылки для {path}: {str(e)}")
+            return path  # Возвращаем путь, если не удалось получить ссылку
+
+    async def add_folder_tag(self, folder_path, tag):
+        """Добавляет тег к папке в базе данных"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'INSERT INTO folder_tags (folder_path, tag) VALUES (?, ?)',
+                    (folder_path, tag)
+                )
+                logger.info(f"Добавлен тег '{tag}' к папке {folder_path} в базе данных")
+                return True
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении тега к папке {folder_path}: {str(e)}")
+            raise
+
+    def get_folder_tags(self, folder_path):
+        """Получает все теги папки"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'SELECT tag FROM folder_tags WHERE folder_path = ? ORDER BY created_at DESC',
+                    (folder_path,)
+                )
+                return [row[0] for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Ошибка при получении тегов папки {folder_path}: {str(e)}")
+            return []
+
+    def folder_exists(self, folder_path):
+        """Проверяет существование папки"""
+        try:
+            self.yadisk.get_meta(folder_path)
+            return True
+        except:
+            return False
+
+    def create_folder(self, folder_path):
+        """Создает новую папку"""
+        try:
+            self.yadisk.mkdir(folder_path)
+            logger.info(f"Создана папка: {folder_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при создании папки {folder_path}: {str(e)}")
+            return False
+
+    def update_paths_in_database(self, old_path, new_path):
+        """Обновляет пути в базе данных после перемещения папки"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                # Обновляем пути в таблице images
+                cursor.execute('''
+                    UPDATE images 
+                    SET image_path = REPLACE(image_path, ?, ?),
+                        folder_path = REPLACE(folder_path, ?, ?)
+                    WHERE image_path LIKE ? || '%' 
+                    OR folder_path LIKE ? || '%'
+                ''', (old_path, new_path, old_path, new_path, old_path, old_path))
+                
+                # Обновляем пути в таблице folder_tags
+                cursor.execute('''
+                    UPDATE folder_tags 
+                    SET folder_path = REPLACE(folder_path, ?, ?)
+                    WHERE folder_path LIKE ? || '%'
+                ''', (old_path, new_path, old_path))
+                
+                logger.info(f"Обновлены пути в базе данных: {old_path} -> {new_path}")
+                return True
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении путей в базе данных: {str(e)}")
+            return False
+
+    async def move_folder(self, source_path, target_path):
+        """Перемещает папку и обновляет пути в базе данных"""
+        try:
+            folder_name = os.path.basename(source_path)
+            new_path = os.path.join(target_path, folder_name)
+            
+            # Сначала перемещаем папку
+            self.yadisk.move(source_path, new_path)
+            logger.info(f"Папка {source_path} перемещена в {target_path}")
+            
+            # Затем обновляем пути в базе данных
+            if not self.update_paths_in_database(source_path, new_path):
+                logger.warning("Не удалось обновить пути в базе данных")
+            
+            return new_path
+        except Exception as e:
+            logger.error(f"Ошибка при перемещении папки {source_path}: {str(e)}")
+            raise
+
+    def cleanup_database(self):
+        """Очищает базу данных от несуществующих файлов"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT DISTINCT image_path FROM images')
+                paths = cursor.fetchall()
+                
+                for (path,) in paths:
+                    try:
+                        self.yadisk.get_meta(path)
+                    except:
+                        # Если файл не найден, удаляем его из базы
+                        cursor.execute('DELETE FROM images WHERE image_path = ?', (path,))
+                        logger.info(f"Удален несуществующий файл из базы: {path}")
+                
+                conn.commit()
+                logger.info("База данных очищена от несуществующих файлов")
+        except Exception as e:
+            logger.error(f"Ошибка при очистке базы данных: {str(e)}")
+
+    async def update_folder_status(self, source_folder, target_folder, new_path, status, processed_at):
+        """Обновляет статус папки в базе данных"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO folder_status 
+                    (source_folder, target_folder, new_path, status, processed_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (source_folder, target_folder, new_path, status, processed_at))
+                
+                # Обновляем пути в таблице images
+                if new_path:
+                    self.update_paths_in_database(source_folder, new_path)
+                
+                logger.info(
+                    f"Обновлен статус папки {source_folder}:\n"
+                    f"- Целевая папка: {target_folder}\n"
+                    f"- Новый путь: {new_path}\n"
+                    f"- Статус: {status}\n"
+                    f"- Время обработки: {processed_at}"
+                )
+                return True
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении статуса папки {source_folder}: {str(e)}")
+            raise
+
+    def get_folder_status(self, folder_path):
+        """Получает историю статусов папки"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT status, processed_at, target_folder, new_path
+                    FROM folder_status
+                    WHERE source_folder = ?
+                    ORDER BY processed_at DESC
+                ''', (folder_path,))
+                return cursor.fetchall()
+        except Exception as e:
+            logger.error(f"Ошибка при получении статуса папки {folder_path}: {str(e)}")
+            return []
+
+    def get_current_folder_files(self, folder_path):
+        """Получает актуальный список файлов в папке"""
+        try:
+            files = []
+            items = self.yadisk.get_meta(folder_path).embedded.items
+            for item in items:
+                if item.file is not None and item.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+                    files.append(item.path)
+            logger.info(f"Получено {len(files)} файлов из папки {folder_path}")
+            return files
+        except Exception as e:
+            logger.error(f"Ошибка при получении списка файлов из {folder_path}: {str(e)}")
+            raise
+
+    def get_similar_files(self, source_folder, target_folder, threshold=91):
+        """Получает список файлов с высокой схожестью"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT DISTINCT image_path 
+                    FROM images 
+                    WHERE folder_path = ? 
+                    AND EXISTS (
+                        SELECT 1 
+                        FROM images i2 
+                        WHERE i2.folder_path = ? 
+                        AND similarity >= ?
+                    )
+                ''', (source_folder, target_folder, threshold))
+                similar_files = [os.path.basename(row[0]) for row in cursor.fetchall()]
+                logger.info(f"Найдено {len(similar_files)} похожих файлов между папками {source_folder} и {target_folder}")
+                return similar_files
+        except Exception as e:
+            logger.error(f"Ошибка при получении похожих файлов: {str(e)}")
+            return []
+
+    async def move_file(self, source_path, target_folder):
+        """Перемещает файл в указанную папку"""
+        try:
+            file_name = os.path.basename(source_path)
+            new_path = os.path.join(target_folder, file_name)
+            
+            # Если файл с таким именем уже существует, добавляем timestamp
+            try:
+                self.yadisk.get_meta(new_path)
+                name, ext = os.path.splitext(file_name)
+                new_path = f"{target_folder}/{name}_{int(time.time())}{ext}"
+            except:
+                pass
+            
+            self.yadisk.move(source_path, new_path)
+            logger.info(f"Файл {source_path} перемещен в {new_path}")
+            return new_path
+        except Exception as e:
+            logger.error(f"Ошибка при перемещении файла {source_path}: {str(e)}")
+            return None
+
+    async def update_file_location(self, old_path, new_path, new_folder):
+        """Обновляет информацию о местоположении файла в базе данных"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE images 
+                    SET image_path = ?, folder_path = ?
+                    WHERE image_path = ?
+                ''', (new_path, new_folder, old_path))
+                logger.info(f"Обновлено местоположение файла в базе данных: {old_path} -> {new_path}")
+                return True
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении местоположения файла в базе данных: {str(e)}")
+            return False
