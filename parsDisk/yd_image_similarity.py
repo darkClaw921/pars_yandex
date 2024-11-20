@@ -468,9 +468,9 @@ class YandexImageSimilarityFinder:
             if folder_project == self.pathMain.split('/')[-2]:
                 all_path = self.pathMain
 
-            if folder_project == '/Производственный отдел/BBase 🗄/BBase/':
+            if all_path == '/Производственный отдел/BBase 🗄/BBase/':
                 all_path = self.pathMain
-            
+            print(f'{all_path=}') 
             # Подсчитываем общее количество файлов
             total_files = self.count_files_recursive(all_path)  # Используем метод класса
             logger.info(f"Всего найдено файлов: {total_files}")

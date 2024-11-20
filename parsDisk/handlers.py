@@ -1093,6 +1093,8 @@ async def reindex_root_folder(message: types.Message):
         finder = YandexImageSimilarityFinder(bins=16)
         public_link = finder.get_public_link(finder.pathMain) 
         # Получаем общее количество файлов в корневой папке
+        
+        
         await status_message.edit_text("📊 Подсчитываю количество файлов...")
         total_files = finder.count_files_recursive(finder.pathMain)
         
