@@ -200,7 +200,7 @@ async def process_first_folder(message: types.Message, state: FSMContext):
             first_folder_path=folder_path
         )
         
-        await message.answer("Отправьте ссылку на вторую папку для равнения:")
+        await message.answer("Отправьте ссылку на вторую папку для нения:")
         await state.set_state(UploadStates.waiting_for_second_folder)
         
     except Exception as e:
@@ -273,7 +273,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             await status_message.edit_text("Вторая папка отсканирована ✅")
             # Проверяем еще раз после сканирования
             second_folder_exists = finder.is_folder_in_database(second_folder_path)
-            logger.info(f"Повторная проверка второй папки: {'найдена' if second_folder_exists else 'не найдена'}")
+            logger.info(f"Повторная проверка второй папки: {'найдена' if second_folder_exists else 'не найдна'}")
         
         # Проверяем еще раз наличие папок в базе
         if not first_folder_exists or not second_folder_exists:
@@ -343,10 +343,10 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 )
                 sent_messages.append(sent_msg.message_id)
             
-            # После отправки всех сообщений о папках добавляем инструкцию
+            # После отправк всех сообщений о папках добавляем инструкцию
            
             
-            # Добавляем кнопку отмены после всех сообщений
+            # Добавляем кнопку отмены после всех ообщений
             keyboard = InlineKeyboardBuilder()
             keyboard.button(text="❌ Удалить все сообщения", callback_data="clear_all")
             keyboard.adjust(1)
@@ -780,9 +780,12 @@ async def process_non_photo(message: types.Message):
 
 async def send_folder_info(message: types.Message, finder, folder_path, folder_data, idx, second_folder_path):
     """Отправляет информацию о папке с кнопками управления"""
-    # Получаем публичную ссылку на папку
+    # Получаем публичные ссылки на папки
     folder_url = finder.get_public_link(folder_path)
+    target_folder_url = finder.get_public_link(second_folder_path)
+    
     folder_name = os.path.basename(folder_path)
+    target_folder_name = os.path.basename(second_folder_path)
     
     # Проверяем, все ли файлы имеют 100% совпадение
     all_perfect_match = all(
@@ -801,8 +804,12 @@ async def send_folder_info(message: types.Message, finder, folder_path, folder_d
             high_matches.append(match)
         else:
             low_matches.append(match)
-    
+
+    target_subfolder = os.path.dirname(match['full_path2'])
+
+    subfolder_name = os.path.basename(target_subfolder)
     folder_text = f"📁 Папка: [{folder_name}]({folder_url}) ({total_files})\n"
+    folder_text += f"Сравнение с папкой [{subfolder_name}]({finder.get_public_link(target_subfolder)}):\n\n"
     folder_text += "Найденные совпадения:\n"
     
     # Группируем высокие совпадения по схожести
@@ -818,6 +825,8 @@ async def send_folder_info(message: types.Message, finder, folder_path, folder_d
     for similarity, matches in sorted(similarity_groups.items(), reverse=True):
         if len(matches) > 1:
             folder_text += f"  - (схожесть: {similarity:.2f}%) ({len(matches)} шт)\n"
+            countHighMatches += len(matches)
+            continue
         else:
             match = matches[0]
             file_url = finder.get_public_link(match['full_path2'])
@@ -830,13 +839,22 @@ async def send_folder_info(message: types.Message, finder, folder_path, folder_d
     # Создаем клавиатуру для папки
     keyboard = InlineKeyboardBuilder()
     
-    if all_perfect_match and countHighMatches == total_files:
-        keyboard.button(text="Завершить работу", callback_data=f"finish:{idx}")
-    else:
-        keyboard.button(text="Перенести остальные", callback_data=f"move:{idx}")
-        keyboard.button(text="Я буду работать вручную", callback_data=f"manual:{idx}")
+    # Сокращаем длинные названия папок
+    def truncate_name(name, max_length=20):
+        return f"{name[:max_length]}..." if len(name) > max_length else name
     
-    keyboard.button(text="Папка разобрана", callback_data=f"done:{idx}")
+    source_name = truncate_name(os.path.basename(folder_path))
+    target_name = truncate_name(os.path.basename(second_folder_path))
+    
+    if all_perfect_match:
+        keyboard.button(text="✅Завершить работу", callback_data=f"finish:{idx}")
+    else:
+        # Формируем короткий текст для кнопки
+        move_button_text = f"➡️ Перенести в {target_name}"
+        keyboard.button(text=move_button_text, callback_data=f"move:{idx}")
+        keyboard.button(text="👋 Ручная обработка", callback_data=f"manual:{idx}")
+    
+    keyboard.button(text="✅ Папка разобрана", callback_data=f"done:{idx}")
     keyboard.adjust(1)
     
     return await message.answer(
@@ -989,7 +1007,7 @@ async def move_remaining_files(callback: types.CallbackQuery, state: FSMContext)
         
         await callback.message.edit_text("Получаю актуальный список файлов...")
         
-        # Получаем актуальный список файлов из исходной папки
+        # Получаем актуальный список файлов из исходно�� папки
         current_files = finder.get_current_folder_files(source_folder)
         
         # Получаем список файлов с высокой схожестью (>= 91%)
@@ -1028,8 +1046,8 @@ async def move_remaining_files(callback: types.CallbackQuery, state: FSMContext)
         
         await callback.message.edit_text(
             f"✅ Перенесено {success_count} из {len(files_to_move)} файлов\n"
-            f"Исходная папка: {os.path.basename(source_folder)}\n"
-            f"Целевая папка: {os.path.basename(target_folder)}"
+            f"Из папки: {os.path.dirname(source_folder)}/[{os.path.basename(source_folder)}]({finder.get_public_link(source_folder)})\n"
+            f"В папку: {os.path.dirname(target_folder)}/[{os.path.basename(target_folder)}]({finder.get_public_link(target_folder)})"
         )
         
     except Exception as e:

@@ -29,7 +29,7 @@ class YandexImageSimilarityFinder:
             self.pathMain = '/Производственный отдел/ТЕСТИРОВАНИЕ/'
         else:
             # self.pathMain = '/Производственный отдел/ПРОЕКТЫ - собираем подборки под проекты, извлекаем отсюда новые/'
-            self.pathMain = '/BBase 🗄/'
+            self.pathMain = '/Производственный отдел/BBase 🗄/'
             
         self.setup_database()
         logger.add(
@@ -388,7 +388,8 @@ class YandexImageSimilarityFinder:
                 for path2, hist2_blob in folder2_photos:
                     current_comparison += 1
                     if current_comparison % 100 == 0:
-                        logger.info(f"Прогресс сравнения: {current_comparison}/{total_comparisons}")
+                        1+0
+                        # logger.info(f"Прогресс сравнения: {current_comparison}/{total_comparisons}")
                     
                     hist2 = pickle.loads(hist2_blob)
                     similarity = self.calculate_similarity(hist1, hist2)
@@ -439,6 +440,9 @@ class YandexImageSimilarityFinder:
         """Рекурсивно подсчитывает количество файлов в папке и подпапках"""
         total = 0
         try:
+            
+            # path='disk:'+path
+            print(path)
             items = self.yadisk.get_meta(path).embedded.items
             for item in items:
                 if item.file is not None and item.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
