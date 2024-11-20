@@ -1091,7 +1091,7 @@ async def reindex_root_folder(message: types.Message):
     try:
         status_message = await message.answer("🔄 Начинаю полное сканирование базы...")
         finder = YandexImageSimilarityFinder(bins=16)
-        
+        public_link = finder.get_public_link(finder.pathMain) 
         # Получаем общее количество файлов в корневой папке
         await status_message.edit_text("📊 Подсчитываю количество файлов...")
         total_files = finder.count_files_recursive(finder.pathMain)
@@ -1124,7 +1124,8 @@ async def reindex_root_folder(message: types.Message):
         #     conn.commit()
         
         # Сканируем корневую папку
-        scan_success = await finder.scan_directory_async(finder.pathMain, update_progress)
+        # public_link = finder.get_public_link(finder.pathMain)
+        scan_success = await finder.scan_directory_async(public_link, update_progress)
         
         if scan_success:
             await status_message.edit_text(
