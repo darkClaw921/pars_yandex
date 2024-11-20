@@ -15,7 +15,7 @@ import asyncio
 load_dotenv()
 
 class YandexImageSimilarityFinder:
-    def __init__(self, db_path='yd_image_database.db', bins=8, isTest=True):
+    def __init__(self, db_path='yd_image_database.db', bins=8, isTest=False):
         self.yadisk = YaDisk(
             os.getenv('APLICATION_ID'),
             os.getenv('APLICATION_SECRET'),
@@ -25,9 +25,11 @@ class YandexImageSimilarityFinder:
         self.bins = bins
         
         if isTest:
+            # self.pathMain = '/Производственный отдел/ТЕСТИРОВАНИЕ/'
             self.pathMain = '/Производственный отдел/ТЕСТИРОВАНИЕ/'
         else:
-            self.pathMain = '/Производственный отдел/ПРОЕКТЫ - собираем подборки под проекты, извлекаем отсюда новые/'
+            # self.pathMain = '/Производственный отдел/ПРОЕКТЫ - собираем подборки под проекты, извлекаем отсюда новые/'
+            self.pathMain = '/BBase 🗄/'
             
         self.setup_database()
         logger.add(
