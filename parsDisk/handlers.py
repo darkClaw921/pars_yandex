@@ -1007,7 +1007,7 @@ async def move_remaining_files(callback: types.CallbackQuery, state: FSMContext)
         
         await callback.message.edit_text("Получаю актуальный список файлов...")
         
-        # Получаем актуальный список файлов из исходно�� папки
+        # Получаем актуальный список файлов из исходно папки
         current_files = finder.get_current_folder_files(source_folder)
         
         # Получаем список файлов с высокой схожестью (>= 91%)
@@ -1033,7 +1033,7 @@ async def move_remaining_files(callback: types.CallbackQuery, state: FSMContext)
                     # Обновляем информацию в базе данных
                     await finder.update_file_location(file_path, new_path, target_folder)
             except Exception as e:
-                logger.error(f"Ошибка при переносе файла {file_path}: {str(e)}")
+                logger.error(f"Ошибка ри переносе файла {file_path}: {str(e)}")
         
         # Обновляем статус в базе данных
         await finder.update_folder_status(
@@ -1084,6 +1084,67 @@ async def clear_all_messages(callback: types.CallbackQuery, state: FSMContext):
     
     # Очищаем состояние
     await state.clear()
+
+@router.message(Command("reindex"))
+async def reindex_root_folder(message: types.Message):
+    """Полное сканирование корневой папки"""
+    try:
+        status_message = await message.answer("🔄 Начинаю полное сканирование базы...")
+        finder = YandexImageSimilarityFinder(bins=16)
+        
+        # Получаем общее количество файлов в корневой папке
+        await status_message.edit_text("📊 Подсчитываю количество файлов...")
+        total_files = finder.count_files_recursive(finder.pathMain)
+        
+        if total_files == 0:
+            await status_message.edit_text("❌ Не найдено файлов для обработки")
+            return
+        
+        await status_message.edit_text(
+            f"📁 Найдено {total_files} файлов\n"
+            "Начинаю сканирование..."
+        )
+        
+        async def update_progress(current, total, estimated_time):
+            progress = int((current / total) * 10)
+            progress_bar = "■" * progress + "□" * (10 - progress)
+            percentage = int((current / total) * 100)
+            progress_text = (
+                f"🔍 Сканирование базы:\n"
+                f"[{progress_bar}] {percentage}%\n"
+                f"Обработано: {current}/{total}\n"
+                f"Осталось примерно: {estimated_time}"
+            )
+            await status_message.edit_text(progress_text)
+        
+        # Очищаем старую базу данных
+        # with sqlite3.connect(finder.db_path) as conn:
+        #     cursor = conn.cursor()
+        #     cursor.execute('DELETE FROM images')
+        #     conn.commit()
+        
+        # Сканируем корневую папку
+        scan_success = await finder.scan_directory_async(finder.pathMain, update_progress)
+        
+        if scan_success:
+            await status_message.edit_text(
+                "✅ Сканирование завершено\n"
+                f"Обработано файлов: {total_files}\n"
+                f"База данных обновлена"
+            )
+        else:
+            await status_message.edit_text(
+                "⚠️ Сканирование завершено с ошибками\n"
+                "Проверьте логи для получения дополнительной информации"
+            )
+            
+    except Exception as e:
+        error_message = f"❌ Ошибка при сканировании: {str(e)}"
+        logger.error(error_message)
+        if status_message:
+            await status_message.edit_text(error_message)
+        else:
+            await message.answer(error_message)
 
 if __name__ == "__main__":
     # import asyncio
