@@ -459,8 +459,14 @@ class YandexImageSimilarityFinder:
             logger.info(f"Начинаем сканирование директории по ссылке: {public_link}")
             
             folder_project = self.yadisk.get_public_meta(public_link).name
+            
+
+
             all_path = self.pathMain + folder_project + '/'
             start_time = time.time()
+
+            if folder_project == self.pathMain.split('/')[-2]:
+                all_path = self.pathMain
             
             # Подсчитываем общее количество файлов
             total_files = self.count_files_recursive(all_path)  # Используем метод класса
