@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import time
 import requests
 import asyncio
+from pprint import pprint
 
 load_dotenv()
 
@@ -29,7 +30,7 @@ class YandexImageSimilarityFinder:
             self.pathMain = '/Производственный отдел/ТЕСТИРОВАНИЕ/'
         else:
             # self.pathMain = '/Производственный отдел/ПРОЕКТЫ - собираем подборки под проекты, извлекаем отсюда новые/'
-            self.pathMain = '/Производственный отдел/BBase 🗄/'
+            self.pathMain = '/Производственный отдел/BBase/'
             
         self.setup_database()
         logger.add(
@@ -340,7 +341,7 @@ class YandexImageSimilarityFinder:
     def compare_folders(self, folder1_path, folder2_path, threshold=91):
         """Сравнивает две папки и находит похожие фотографии"""
         similar_photos = []
-        logger.info(f"Сравниваю папки:\n{folder1_path}\n{folder2_path}")
+        logger.info(f"Сравиваю папки:\n{folder1_path}\n{folder2_path}")
         
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -468,9 +469,9 @@ class YandexImageSimilarityFinder:
             if folder_project == self.pathMain.split('/')[-2]:
                 all_path = self.pathMain
 
-            if all_path == '/Производственный отдел/BBase 🗄/BBase/':
+            if '/Производственный отдел/BBase 🗄/BBase' in folder_project:
                 all_path = self.pathMain
-            print(f'{all_path=}') 
+            
             # Подсчитываем общее количество файлов
             total_files = self.count_files_recursive(all_path)  # Используем метод класса
             logger.info(f"Всего найдено файлов: {total_files}")
@@ -790,3 +791,42 @@ class YandexImageSimilarityFinder:
         except Exception as e:
             logger.error(f"Ошибка при обновлении местоположения файла в базе данных: {str(e)}")
             return False
+
+    def normalize_path(self, path_or_link):
+        """Нормализует путь или ссылку в полный путь на Яндекс.Диске"""
+        try:
+            if path_or_link.startswith(('https://disk.yandex.ru/', 'https://yadi.sk/')):
+                # Если это ссылка
+                folder_meta = self.yadisk.get_public_meta(path_or_link)
+                return folder_meta.path.replace('disk:', '')
+            else:
+                # Если это путь
+                clean_path = path_or_link.strip('/')
+                # Проверяем, является ли путь абсолютным
+                if clean_path.startswith('Производственный отдел'):
+                    return f"/{clean_path}"
+                elif clean_path.startswith('/'):
+                    return clean_path
+                else:
+                    # Если путь относительный, добавляем к корневой папке
+                    return os.path.join(self.pathMain, clean_path)
+        except Exception as e:
+            logger.error(f"Ошибка при нормализации пути {path_or_link}: {str(e)}")
+            raise
+
+    def get_folder_path_from_link(self, public_link):
+        """Получает полный путь к папке из публичной ссылки"""
+        try:
+            meta = self.yadisk.get_public_meta(public_link)
+            full_path = meta.path.replace('disk:', '')
+            logger.info(f"Получен путь {full_path} из ссылки {public_link}")
+            return full_path
+        except Exception as e:
+            logger.error(f"Ошибка при получении пути из ссылки {public_link}: {str(e)}")
+            raise
+
+if __name__ == '__main__':
+    b= YandexImageSimilarityFinder()
+    # c=b.yadisk.get_meta('disk:/Производственный отдел/BBase/APT - КВАРТИРЫ/')
+    # pprint(c)
+    pprint(b.get_public_link('disk:/Производственный отдел/BBase/Разбор_базы'))
