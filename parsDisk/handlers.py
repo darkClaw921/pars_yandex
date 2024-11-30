@@ -378,7 +378,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             sent_messages = []
             folder_mapping = {}
             
-            # Отправляем ифорацию о каждой апке отдельным сообщением
+            # Отправляем информацию о каждой папке отдельным сообщением
             for idx, (folder_path, folder_data) in enumerate(folders_with_similar.items(), 1):
                 # Получаем все файлы из папки
                 all_files = finder.get_all_files_from_folder(folder_path, set())
@@ -394,7 +394,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 # Отправляем информацию о папке
                 sent_msg = await send_folder_info(
                     message, 
-                    finder,  # Передаем объект finder
+                    finder,
                     folder_path, 
                     folder_data, 
                     idx, 
@@ -402,10 +402,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 )
                 sent_messages.append(sent_msg.message_id)
             
-            # После отправк всех сообщений о папках добавляем инструкцию
-           
-            
-            # Добавляем кнопку отмены после всех ообщений
+            # Добавляем кнопку отмены после всех сообщений
             keyboard = InlineKeyboardBuilder()
             keyboard.button(text="❌ Удалить все сообщения", callback_data="clear_all")
             keyboard.adjust(1)
@@ -416,12 +413,16 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             )
             sent_messages.append(clear_message.message_id)
             
-            await state.update_data(
-                sent_messages=sent_messages,
-                second_folder_path=second_folder_path,
-                folders_with_similar=folders_with_similar,
-                folder_mapping=folder_mapping
-            )
+            # Сохраняем все необходимые данные в state
+            await state.update_data({
+                'finder': finder,
+                'first_folder_link': first_folder_link,
+                'first_folder_path': first_folder_path,
+                'second_folder_path': second_folder_path,
+                'folders_with_similar': folders_with_similar,
+                'folder_mapping': folder_mapping,
+                'sent_messages': sent_messages
+            })
             
         else:
             if status_message:
@@ -989,7 +990,7 @@ async def process_folder_done(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(lambda c: c.data.startswith('finish:'))
 async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext):
-    """Обработка нажатия кнопки 'Завершить работу'"""
+    """Обработка нажати�� кнопки 'Завершить работу'"""
     try:
         folder_idx = callback.data.split(':')[1]
         data = await state.get_data()
@@ -1039,41 +1040,64 @@ async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext
 @router.callback_query(lambda c: c.data.startswith('manual:'))
 async def process_folder_manual(callback: types.CallbackQuery, state: FSMContext):
     """Обработка нажатия кнопки 'Я буду работать вручную'"""
-    folder_idx = callback.data.split(':')[1]
-    data = await state.get_data()
-    finder = data['finder']
-    folder_mapping = data['folder_mapping']
-    
-    folder_info = folder_mapping.get(f"f{folder_idx}")
-    if not folder_info:
-        await callback.message.answer("Ошибка: папка не найдена")
-        return
-    
-    source_folder = folder_info['source_path']
-    target_folder = folder_info['target_path']
-    
     try:
-        # Получаем публичные ссылки на папки
-        source_url = finder.get_public_link(source_folder)
-        target_url = finder.get_public_link(target_folder)
+        folder_idx = callback.data.split(':')[1]
+        data = await state.get_data()
         
-        # Получаем названия папок
-        source_name = os.path.basename(source_folder)
-        target_name = os.path.basename(target_folder)
+        # Безопасное получение данных из state
+        finder = data.get('finder')
+        folder_mapping = data.get('folder_mapping', {})
         
-        # Создаем клавиатуру с кнопкой "Папка разобрана"
-        keyboard = InlineKeyboardBuilder()
-        keyboard.button(text="Папка разобрана", callback_data=f"done:{folder_idx}")
-        keyboard.adjust(1)
+        if not finder or not folder_mapping:
+            logger.error(f"Отсутствуют необходимые данные в state: {data}")
+            await callback.message.edit_text("Ошибка: данные сессии утеряны")
+            await state.clear()
+            return
         
-        await callback.message.edit_text(
-            f"👌 Вы работаете в папках:\n"
-            f"[{source_name}]({source_url}) и [{target_name}]({target_url})",
-            reply_markup=keyboard.as_markup(),
-            parse_mode="Markdown"
-        )
+        folder_info = folder_mapping.get(f"f{folder_idx}")
+        if not folder_info:
+            await callback.message.edit_text("Ошибка: папка не найдена")
+            return
+        
+        source_folder = folder_info['source_path']
+        target_folder = folder_info['target_path']
+        
+        try:
+            # Получаем публичные ссылки на папки
+            source_url = finder.get_public_link(source_folder)
+            target_url = finder.get_public_link(target_folder)
+            
+            # Получаем названия папок
+            source_name = os.path.basename(source_folder)
+            target_name = os.path.basename(target_folder)
+            
+            # Создаем клавиатуру с кнопкой "Папка разобрана"
+            keyboard = InlineKeyboardBuilder()
+            keyboard.button(text="Папка разобрана", callback_data=f"done:{folder_idx}")
+            keyboard.adjust(1)
+            
+            # Сохраняем данные в state перед отправкой нового сообщения
+            await state.update_data({
+                'finder': finder,
+                'folder_mapping': folder_mapping,
+                'source_folder': source_folder,
+                'target_folder': target_folder
+            })
+            
+            await callback.message.edit_text(
+                f"👌 Вы работаете в папках:\n"
+                f"[{source_name}]({source_url}) и [{target_name}]({target_url})",
+                reply_markup=keyboard.as_markup(),
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при получении информации о папках: {str(e)}")
+            await callback.message.edit_text(f"Ошибка при получении информации о папках: {str(e)}")
+    
     except Exception as e:
-        await callback.message.answer(f"Ошибка при получении информации о папках: {str(e)}")
+        logger.error(f"Ошибка в process_folder_manual: {str(e)}")
+        await callback.message.edit_text("Произошла ошибка при обработке")
+        await state.clear()
 
 @router.callback_query(lambda c: c.data.startswith('move:'))
 async def move_remaining_files(callback: types.CallbackQuery, state: FSMContext):
