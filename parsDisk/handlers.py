@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import traceback
 from aiogram import types, F, Router, html, Bot
 from aiogram.types import (Message, CallbackQuery,
                            InputFile, FSInputFile,
@@ -215,41 +214,40 @@ async def compare_folders_start(message: types.Message, state: FSMContext):
 async def process_first_folder(message: types.Message, state: FSMContext):
     folder_input = message.text
     finder = YandexImageSimilarityFinder(bins=16)
-    print(folder_input)
-    # try:
-    if is_yandex_link(folder_input):
-        # Если передана ссылка
-        folder_meta = finder.yadisk.get_public_meta(folder_input)
-        folder_path = finder.pathMain + folder_meta.name
-        folder_link = folder_input
-    else:
-        # Если передан путь
-        processed_path = process_folder_path(folder_input)
-        folder_path = os.path.join('/', processed_path)
-        try:
-            folder_meta = finder.yadisk.get_meta(folder_path)
-            folder_link = finder.get_public_link(folder_path)
-        except Exception as e:
-            
-            await message.answer(f"Ошибка при доступе к папке по пути {folder_path}: {str(e)}", parse_mode='HTML')
-            await state.clear()
-            return
     
-    await message.answer(f"📂 Полный путь к папке:\n{folder_path}",parse_mode='HTML')
-    
-    # Сохраняем информацию о первой папке
-    await state.update_data(
-        finder=finder,
-        first_folder_link=folder_link,
-        first_folder_path=folder_path
-    )
-    
-    await message.answer("Отправьте ссылку или путь ко второй папке для сравнения:")
-    await state.set_state(UploadStates.waiting_for_second_folder)
+    try:
+        if is_yandex_link(folder_input):
+            # Если передана ссылка
+            folder_meta = finder.yadisk.get_public_meta(folder_input)
+            folder_path = finder.pathMain + folder_meta.name
+            folder_link = folder_input
+        else:
+            # Если передан путь
+            processed_path = process_folder_path(folder_input)
+            folder_path = os.path.join('/', processed_path)
+            try:
+                folder_meta = finder.yadisk.get_meta(folder_path)
+                folder_link = finder.get_public_link(folder_path)
+            except Exception as e:
+                await message.answer(f"Ошибка при доступе к папке по пути {folder_path}: {str(e)}")
+                await state.clear()
+                return
         
-    # except Exception as e:
-    # await message.answer(f"Ошибка при доступе к папке: {str(e)}", parse_mode='HTML')
-    # await state.clear()
+        await message.answer(f"📂 Полный путь к папке:\n{folder_path}")
+        
+        # Сохраняем информацию о первой папке
+        await state.update_data(
+            finder=finder,
+            first_folder_link=folder_link,
+            first_folder_path=folder_path
+        )
+        
+        await message.answer("Отправьте ссылку или путь ко второй папке для сравнения:")
+        await state.set_state(UploadStates.waiting_for_second_folder)
+        
+    except Exception as e:
+        await message.answer(f"Ошибка при доступе к папке: {str(e)}")
+        await state.clear()
 
 @router.message(UploadStates.waiting_for_second_folder)
 async def process_second_folder(message: types.Message, state: FSMContext):
@@ -276,8 +274,8 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 await message.answer(f"Ошибка при доступе к папке по пути {second_folder_path}: {str(e)}")
                 await state.clear()
                 return
-        logger.info(f"📂 Полный путь к папке: {second_folder_path}")
-        await message.answer(f"📂 Полный путь к папке:\n{second_folder_path}", parse_mode='HTML')
+        
+        await message.answer(f"📂 Полный путь к папке:\n{second_folder_path}")
         
         status_message = await message.answer("⏳ Проверяю наличие папок в базе...")
         
@@ -350,7 +348,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
         similar_photos = finder.compare_folders(first_folder_path, second_folder_path)
         
         if similar_photos:
-            # Группируем похожие фото по папкам
+            # Группируем похожие фо��о по папкам
             folders_with_similar = {}
             for match in similar_photos:
                 folder_path = os.path.dirname(match['full_path1'])
@@ -430,9 +428,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 await message.answer("Похожих фотграфий не найдено")
             await state.clear()
     except Exception as e:
-        logger.error(f"Ошибка при сравнении папок: {str(e)}, {traceback.print_exc()}")
-        
-        await message.answer(f"Ошибка при сравнении папок: {str(e)}", parse_mode='HTML')
+        await message.answer(f"Ошибка при сравнении папок: {str(e)}")
         await state.clear()
 
 @router.callback_query(UploadStates.confirm_move, lambda c: c.data.startswith('move:'))
@@ -927,88 +923,118 @@ async def send_folder_info(message: types.Message, finder, folder_path, folder_d
 @router.callback_query(lambda c: c.data.startswith('done:'))
 async def process_folder_done(callback: types.CallbackQuery, state: FSMContext):
     """Обработка нажатия кнопки 'Папка разобрана'"""
-    folder_idx = callback.data.split(':')[1]
-    data = await state.get_data()
-    finder = data['finder']
-    folders_with_similar = data['folders_with_similar']
-    folder_mapping = data['folder_mapping']
-    
-    folder_info = folder_mapping.get(f"f{folder_idx}")
-    if not folder_info:
-        await callback.message.answer("Ошибка: папка не найдена")
-        return
-    
-    source_folder = folder_info['source_path']
-    target_folder = folder_info['target_path']
-    
     try:
-        # Добавляем тег к целевой папке в базе данных
-        source_folder_name = os.path.basename(source_folder)
-        await finder.add_folder_tag(target_folder, source_folder_name)
+        folder_idx = callback.data.split(':')[1]
+        data = await state.get_data()
+        finder = data.get('finder')
+        folders_with_similar = data.get('folders_with_similar', {})
+        folder_mapping = data.get('folder_mapping', {})
         
-        # Создаем папку 'завершено' если её нет
-        completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
-        if not finder.folder_exists(completed_folder):
-            finder.create_folder(completed_folder)
+        if not finder or not folder_mapping:
+            await callback.message.edit_text("❌ Ошибка: данные сессии утеряны")
+            await state.clear()
+            return
         
-        # Перемещаем исходную папку в 'завершено'
-        new_path = await finder.move_folder(source_folder, completed_folder)
+        folder_info = folder_mapping.get(f"f{folder_idx}")
+        if not folder_info:
+            await callback.message.edit_text("❌ Ошибка: папка не найдена")
+            return
         
-        # Обновляем информацию в базе данных
-        await finder.update_folder_status(
-            source_folder=source_folder,
-            target_folder=target_folder,
-            new_path=new_path,
-            status='completed',
-            processed_at=datetime.datetime.now()
-        )
+        source_folder = folder_info['source_path']
+        target_folder = folder_info['target_path']
         
-        # Получаем все теги целевой папки
-        tags = finder.get_folder_tags(target_folder)
-        tags_str = ", ".join(tags) if tags else "нет тегов"
+        try:
+            # Добавляем тег к целевой папке в базе данных
+            source_folder_name = os.path.basename(source_folder)
+            await finder.add_folder_tag(target_folder, source_folder_name)
+            
+            # Создаем папку 'завершено' если её нет
+            completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
+            if not finder.folder_exists(completed_folder):
+                finder.create_folder(completed_folder)
+            
+            # Перемещаем исходную папку в 'завершено'
+            new_path = await finder.move_folder(source_folder, completed_folder)
+            
+            # Обновляем информацию в базе данных
+            await finder.update_folder_status(
+                source_folder=source_folder,
+                target_folder=target_folder,
+                new_path=new_path,
+                status='completed',
+                processed_at=datetime.datetime.now()
+            )
+            
+            # Получаем все теги целевой папки
+            tags = finder.get_folder_tags(target_folder)
+            tags_str = ", ".join(tags) if tags else "нет тегов"
+            
+            await callback.message.edit_text(
+                f"✅ Папка {source_folder_name} обработана:\n"
+                f"- Добавлен тег в базу данных\n"
+                f"- Папка перемещена в 'завершено'\n"
+                f"- Теги целевой папки: {tags_str}\n"
+                f"- Статус обновлен в базе данных"
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при обработке папки {source_folder}: {str(e)}")
+            await callback.message.edit_text(f"❌ Ошибка при обработке папки: {str(e)}")
         
-        await callback.message.edit_text(
-            f"✅ Папка {source_folder_name} обработана:\n"
-            f"- Добавлен тег в базу данных\n"
-            f"- Папка перемещена в 'завершено'\n"
-            f"- Теги целевой папки: {tags_str}\n"
-            f"- Статус обновлен в базе данных"
-        )
+        await state.clear()
+        
     except Exception as e:
-        await callback.message.answer(f"Ошибка при обработке папки: {str(e)}")
+        error_message = f"❌ Ошибка при обработке команды: {str(e)}"
+        logger.error(error_message)
+        await callback.message.edit_text(error_message)
+        await state.clear()
 
 @router.callback_query(lambda c: c.data.startswith('finish:'))
 async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext):
     """Обработка нажатия кнопки 'Завершить работу'"""
-    # Аналогично process_folder_done, но без переноса файлов
-    folder_idx = callback.data.split(':')[1]
-    data = await state.get_data()
-    finder = data['finder']
-    folder_mapping = data['folder_mapping']
-    
-    folder_info = folder_mapping.get(f"f{folder_idx}")
-    if not folder_info:
-        await callback.message.answer("Ошибка: папка не найдена")
-        return
-    
-    source_folder = folder_info['source_path']
-    target_folder = folder_info['target_path']
-    
     try:
-        source_folder_name = os.path.basename(source_folder)
-        await finder.add_folder_tag(target_folder, source_folder_name)
+        folder_idx = callback.data.split(':')[1]
+        data = await state.get_data()
+        finder = data.get('finder')
+        folders_with_similar = data.get('folders_with_similar', {})
+        folder_mapping = data.get('folder_mapping', {})
         
-        completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
-        if not finder.folder_exists(completed_folder):
-            finder.create_folder(completed_folder)
+        if not finder or not folder_mapping:
+            await callback.message.edit_text("❌ Ошибка: данные сессии утеряны")
+            await state.clear()
+            return
         
-        await finder.move_folder(source_folder, completed_folder)
+        folder_info = folder_mapping.get(f"f{folder_idx}")
+        if not folder_info:
+            await callback.message.edit_text("❌ Ошибка: папка не найдена")
+            return
         
-        await callback.message.edit_text(
-            f"✅ Работа с папкой {source_folder_name} завершена"
-        )
+        source_folder = folder_info['source_path']
+        target_folder = folder_info['target_folder']
+        
+        try:
+            source_folder_name = os.path.basename(source_folder)
+            await finder.add_folder_tag(target_folder, source_folder_name)
+            
+            completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
+            if not finder.folder_exists(completed_folder):
+                finder.create_folder(completed_folder)
+            
+            await finder.move_folder(source_folder, completed_folder)
+            
+            await callback.message.edit_text(
+                f"✅ Работа с папкой {source_folder_name} завершена"
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при завершении работы с папкой {source_folder}: {str(e)}")
+            await callback.message.edit_text(f"❌ Ошибка при завершении работы: {str(e)}")
+        
+        await state.clear()
+        
     except Exception as e:
-        await callback.message.answer(f"Ошибка при завершении работы: {str(e)}")
+        error_message = f"❌ Ошибка при обработке команды: {str(e)}"
+        logger.error(error_message)
+        await callback.message.edit_text(error_message)
+        await state.clear()
 
 @router.callback_query(lambda c: c.data.startswith('manual:'))
 async def process_folder_manual(callback: types.CallbackQuery, state: FSMContext):
