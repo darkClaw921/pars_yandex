@@ -953,7 +953,7 @@ async def process_folder_done(callback: types.CallbackQuery, state: FSMContext):
         try:
             source_folder_name = os.path.basename(source_folder)
             await finder.add_folder_tag(target_folder, source_folder_name)
-            
+
             completed_folder = os.path.join(os.path.dirname('/Производственный отдел/BBase/'), 'завершено') 
             # completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
             if not finder.folder_exists(completed_folder):
@@ -1028,7 +1028,8 @@ async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext
             await finder.move_folder(source_folder, completed_folder)
             
             await callback.message.edit_text(
-                f"✅ Работа с папкой {source_folder_name} завершена"
+                f"✅ Работа с папкой {source_folder_name} завершена", 
+                parse_mode="HTML"
             )
         except Exception as e:
             logger.error(f"Ошибка при завершении работы с папкой {source_folder}: {str(e)}")
