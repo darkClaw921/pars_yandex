@@ -954,7 +954,8 @@ async def process_folder_done(callback: types.CallbackQuery, state: FSMContext):
             source_folder_name = os.path.basename(source_folder)
             await finder.add_folder_tag(target_folder, source_folder_name)
             
-            completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
+            completed_folder = os.path.join(os.path.dirname('/Производственный отдел/BBase/'), 'завершено') 
+            # completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
             if not finder.folder_exists(completed_folder):
                 finder.create_folder(completed_folder)
             
@@ -1015,12 +1016,15 @@ async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext
         
         try:
             source_folder_name = os.path.basename(source_folder)
+            
             await finder.add_folder_tag(target_folder, source_folder_name)
             
-            completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
+            # target_folder='/Производственный отдел/BBase/завершено'
+            completed_folder = os.path.join(os.path.dirname('/Производственный отдел/BBase/'), 'завершено')
             if not finder.folder_exists(completed_folder):
                 finder.create_folder(completed_folder)
             
+
             await finder.move_folder(source_folder, completed_folder)
             
             await callback.message.edit_text(
