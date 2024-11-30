@@ -23,13 +23,13 @@ from workGS import Sheet
 # from workSelenium import get_info
 # from pars_avito import get_info_avito
 load_dotenv()
-TOKEN = os.getenv('SENDER_BOT_TOKEN')
+# TOKEN = os.getenv('SENDER_BOT_TOKEN')
 
 router = Router()
 
-bot = Bot(token=TOKEN,)
+# bot = Bot(token=TOKEN,)
 
-s=Sheet('profzaboru-5f6f677a3cd8.json','Объекты тест','Объекты')
+# s=Sheet('profzaboru-5f6f677a3cd8.json','Объекты тест','Объекты')
 
 from loguru import logger
 logger.add("logs/parsBot_{time}.log",format="{time} - {level} - {message}", rotation="100 MB", retention="10 days", level="DEBUG")
@@ -108,7 +108,7 @@ class DealPaginator:
             nav_buttons.append(InlineKeyboardButton(text="◀️ Назад", callback_data=f"page:{current_page-1}"))
         nav_buttons.append(InlineKeyboardButton(text=f"{current_page}/{self.total_pages}", callback_data="ignore"))
         if current_page < self.total_pages:
-            nav_buttons.append(InlineKeyboardButton(text="Вперед ▶️", callback_data=f"page:{current_page+1}"))
+            nav_buttons.append(InlineKeyboardButton(text="Впе��ед ▶️", callback_data=f"page:{current_page+1}"))
         
         # Добавляем навигационные кнопки в конец
         builder.row(*nav_buttons)
@@ -203,7 +203,7 @@ def process_folder_path(path):
     if path.startswith('/'):
         return path.lstrip('/')
     
-    # В остальных случаях возвращаем путь как есть
+    # В остальных случаях возвращаем ��уть как есть
     return path
 
 @router.message(F.text == "Сравнить папки")
@@ -261,7 +261,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
     
     try:
         if is_yandex_link(folder_input):
-            # Если передана ссылка
+            # Ели передана ссылка
             folder_meta = finder.yadisk.get_public_meta(folder_input)
             second_folder_path = finder.pathMain + folder_meta.name
             folder_link = folder_input
@@ -286,7 +286,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
         second_folder_exists = finder.is_folder_in_database(second_folder_path)
         
         logger.info(f"Первая папка {first_folder_path}: {'найдена' if first_folder_exists else 'не найдена'} в базе")
-        logger.info(f"Вторая папка {second_folder_path}: {'найдена' if second_folder_exists else 'не найдена'} в базе")
+        logger.info(f"Вторая папка {second_folder_path}: {'найдена' if second_folder_exists else 'не на��дена'} в базе")
         
         scan_success = True
         
@@ -398,7 +398,8 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                     folder_path, 
                     folder_data, 
                     idx, 
-                    second_folder_path
+                    second_folder_path,
+                    state  # Добавляем state в аргументы
                 )
                 sent_messages.append(sent_msg.message_id)
             
@@ -508,7 +509,7 @@ async def move_files_from_folder(callback: types.CallbackQuery, state: FSMContex
                     success_count += 1
                     subfolder_success += 1
             except Exception as e:
-                logger.error(f"Ошибка при переносе {file_path}: {str(e)}")
+                logger.error(f"Ошибка при переносе файла {file_path}: {str(e)}")
         
         subfolder_status += f"\nПеренесено: {subfolder_success} из {len(files)}"
         status_text += subfolder_status
@@ -840,7 +841,7 @@ async def process_non_photo(message: types.Message):
 #     await router.start_polling(bot)
 
 
-async def send_folder_info(message: types.Message, finder, folder_path, folder_data, idx, second_folder_path):
+async def send_folder_info(message: types.Message, finder, folder_path, folder_data, idx, second_folder_path, state: FSMContext):
     """Отправляет информацию о папке с кнопками управления"""
     # Получаем публичные ссылки на папки
     folder_url = finder.get_public_link(folder_path)
@@ -868,8 +869,8 @@ async def send_folder_info(message: types.Message, finder, folder_path, folder_d
             low_matches.append(match)
 
     target_subfolder = os.path.dirname(match['full_path2'])
-
     subfolder_name = os.path.basename(target_subfolder)
+    
     folder_text = f"📁 Папка: [{folder_name}]({folder_url}) ({total_files})\n"
     folder_text += f"Сравнение с папкой [{subfolder_name}]({finder.get_public_link(target_subfolder)}):\n\n"
     folder_text += "Найденные совпадения:\n"
@@ -906,15 +907,54 @@ async def send_folder_info(message: types.Message, finder, folder_path, folder_d
         return f"{name[:max_length]}..." if len(name) > max_length else name
     
     source_name = truncate_name(os.path.basename(folder_path))
-    target_name = truncate_name(os.path.basename(second_folder_path))
+    target_name = truncate_name(os.path.basename(target_subfolder))  # Используем имя целевой подпапки
     
-    if all_perfect_match:
+    # Подсчитываем количество непохожих ф��йлов и файлов с низкой схожестью
+    similar_files = set(m['file1'] for m in folder_data['similar'])
+    high_similarity_files = set(m['file1'] for m in folder_data['similar'] if m['similarity'] >= 91)
+    
+    # Файлы для переноса - это файлы с низкой схожестью и непохожие файлы
+    files_to_move = len([f for f in folder_data['all_files'] 
+                        if os.path.basename(f) not in high_similarity_files])
+    
+    # Сохраняем информацию о целевой подпапке в folder_mapping
+    folder_id = f"f{idx}"
+    folder_mapping = {
+        # folder_id: {
+            "mainFolder": folder_path,
+            "secondFolder": target_subfolder  # Используем target_subfolder из найденного совпадения
+        # }
+    }
+    
+    # Обновляем state с новым folder_mapping
+    state_data = await state.get_data()
+    if 'folder_mapping_move' not in state_data:
+        state_data['folder_mapping_move'] = {}
+    state_data['folder_mapping_move'][folder_id] = folder_mapping
+    await state.update_data(**state_data)
+    
+    if all_perfect_match and countHighMatches == 0:
         keyboard.button(text="✅Завершить работу", callback_data=f"finish:{idx}")
     else:
-        # Формируем короткий текст для кнопки
-        move_button_text = f"➡️ Перенести в {target_name}"
-        keyboard.button(text=move_button_text, callback_data=f"move:{idx}")
-        keyboard.button(text="👋 Ручная обработка", callback_data=f"manual:{idx}")
+        # Если есть файлы для переноса
+        if files_to_move > 0:
+            # Если есть и похожие, и непохожие файлы
+            if len(high_similarity_files) > 0:
+                keyboard.button(
+                    text=f"➡️ Перенести остальные ({files_to_move} шт)", 
+                    callback_data=f"move:{idx}"
+                )
+                keyboard.button(
+                    text=f"➡️ Перенести в {target_name}", 
+                    callback_data=f"move_all:{idx}"
+                )
+            else:
+                # Если есть только непохожие файлы
+                keyboard.button(
+                    text=f"➡️ Перенести в {target_name}", 
+                    callback_data=f"move:{idx}"
+                )
+            keyboard.button(text="👋 Вручную", callback_data=f"manual:{idx}")
     
     keyboard.button(text="✅ Папка разобрана", callback_data=f"done:{idx}")
     keyboard.adjust(1)
@@ -991,7 +1031,7 @@ async def process_folder_done(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(lambda c: c.data.startswith('finish:'))
 async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext):
-    """Обработка нажати�� кнопки 'Завершить работу'"""
+    """Обработка нажатия кнопки 'Завершить работу'"""
     try:
         folder_idx = callback.data.split(':')[1]
         data = await state.get_data()
@@ -1112,24 +1152,23 @@ async def move_remaining_files(callback: types.CallbackQuery, state: FSMContext)
         data = await state.get_data()
         finder = data['finder']
         folder_mapping = data['folder_mapping']
-        
+        folders_with_similar = data['folders_with_similar']
+        folder_mapping_move = data['folder_mapping_move'][f'f{folder_idx}'] 
         folder_info = folder_mapping.get(f"f{folder_idx}")
         if not folder_info:
             await callback.message.edit_text("Ошибка: папка не найдена")
             return
         
-        source_folder = folder_info['source_path']
-        target_folder = folder_info['target_path']
+        source_folder = folder_mapping_move['mainFolder']
+        target_folder = folder_mapping_move['secondFolder']
         
         await callback.message.edit_text("Получаю актуальный список файлов...")
         
-        # Получаем актуальный список файлов из исходно папки
+        # Получаем актуальный список файлов из исходной папки
         current_files = finder.get_current_folder_files(source_folder)
         
-        # Получаем список файлов с высокой схожестью (>= 91%)
-        similar_files = finder.get_similar_files(source_folder, target_folder)
-        
-        # Определяем файлы для переноса (все, кроме похожих)
+        # Получаем список файлов для переноса (исключаем похожие)
+        similar_files = set(m['file1'] for m in folders_with_similar[source_folder]['similar'])
         files_to_move = [f for f in current_files if os.path.basename(f) not in similar_files]
         
         if not files_to_move:
@@ -1138,24 +1177,19 @@ async def move_remaining_files(callback: types.CallbackQuery, state: FSMContext)
         
         await callback.message.edit_text(f"Переношу {len(files_to_move)} файлов...")
         
-        # Переносим файлы
         success_count = 0
         for file_path in files_to_move:
             try:
-                # Перемещаем файл
-                new_path = await finder.move_file(file_path, target_folder)
-                if new_path:
+                # Добавляем await перед вызовом асинхронного метода
+                if await finder.move_file(file_path, target_folder):
                     success_count += 1
-                    # Обновляем информацию в базе данных
-                    await finder.update_file_location(file_path, new_path, target_folder)
             except Exception as e:
-                logger.error(f"Ошибка ри переносе файла {file_path}: {str(e)}")
+                logger.error(f"Ошибка при переносе файла {file_path}: {str(e)}")
         
-        # Обновляем статус в базе данных
         await finder.update_folder_status(
             source_folder=source_folder,
             target_folder=target_folder,
-            new_path=None,  # Папка не перемещается
+            new_path=None,
             status='files_moved',
             processed_at=datetime.datetime.now()
         )
@@ -1208,7 +1242,7 @@ async def reindex_root_folder(message: types.Message):
         status_message = await message.answer("🔄 Начинаю полное сканирование базы...")
         finder = YandexImageSimilarityFinder(bins=16)
         public_link = finder.get_public_link(finder.pathMain) 
-        # Получаем общее количество файлов в корневой папке
+        # Поучаем общее количество файлов в корневой папке
         await status_message.edit_text("📊 Подсчитываю количество файлов...")
         total_files = finder.count_files_recursive(finder.pathMain)
         
@@ -1262,6 +1296,62 @@ async def reindex_root_folder(message: types.Message):
             await status_message.edit_text(error_message)
         else:
             await message.answer(error_message)
+
+@router.callback_query(lambda c: c.data.startswith('move_all:'))
+async def move_all_files(callback: types.CallbackQuery, state: FSMContext):
+    """Обработка нажатия кнопки 'Перенести в [папка]'"""
+    try:
+        folder_idx = callback.data.split(':')[1]
+        data = await state.get_data()
+        finder = data['finder']
+        folder_mapping_move = data['folder_mapping_move']
+        
+        folder_info = folder_mapping_move.get(f"f{folder_idx}")
+        if not folder_info:
+            await callback.message.edit_text("Ошибка: папка не найдена")
+            return
+        
+        source_folder = folder_info['mainFolder']
+        target_folder = folder_info['secondFolder']
+        
+        await callback.message.edit_text("Получаю актуальный список файлов...")
+        
+        # Получаем все файлы из исходной папки
+        current_files = finder.get_current_folder_files(source_folder)
+        
+        if not current_files:
+            await callback.message.edit_text("Нет файлов для переноса")
+            return
+        
+        await callback.message.edit_text(f"Переношу {len(current_files)} файлов...")
+        
+        success_count = 0
+        for file_path in current_files:
+            try:
+                # Добавляем await перед вызовом асинхронного метода
+                if await finder.move_file(file_path, target_folder):
+                    success_count += 1
+            except Exception as e:
+                logger.error(f"Ошибка при переносе файла {file_path}: {str(e)}")
+        
+        await finder.update_folder_status(
+            source_folder=source_folder,
+            target_folder=target_folder,
+            new_path=None,
+            status='all_files_moved',
+            processed_at=datetime.datetime.now()
+        )
+        
+        await callback.message.edit_text(
+            f"✅ Перенесено {success_count} из {len(current_files)} файлов\n"
+            f"Из папки: {os.path.dirname(source_folder)}/[{os.path.basename(source_folder)}]({finder.get_public_link(source_folder)})\n"
+            f"В папку: {os.path.dirname(target_folder)}/[{os.path.basename(target_folder)}]({finder.get_public_link(target_folder)})"
+        )
+        
+    except Exception as e:
+        error_message = f"Ошибка при переносе файлов"
+        logger.error(f"{error_message}: {str(e)}")
+        await callback.message.edit_text(error_message)
 
 if __name__ == "__main__":
     # import asyncio

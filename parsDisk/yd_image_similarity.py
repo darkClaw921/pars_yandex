@@ -610,30 +610,39 @@ class YandexImageSimilarityFinder:
 
     def update_paths_in_database(self, old_path, new_path):
         """Обновляет пути в базе данных после перемещения папки"""
+        conn = None
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                # Обновляем пути в таблице images
-                cursor.execute('''
-                    UPDATE images 
-                    SET image_path = REPLACE(image_path, ?, ?),
-                        folder_path = REPLACE(folder_path, ?, ?)
-                    WHERE image_path LIKE ? || '%' 
-                    OR folder_path LIKE ? || '%'
-                ''', (old_path, new_path, old_path, new_path, old_path, old_path))
-                
-                # Обновляем пути в таблице folder_tags
-                cursor.execute('''
-                    UPDATE folder_tags 
-                    SET folder_path = REPLACE(folder_path, ?, ?)
-                    WHERE folder_path LIKE ? || '%'
-                ''', (old_path, new_path, old_path))
-                
-                logger.info(f"Обновлены пути в базе данных: {old_path} -> {new_path}")
-                return True
+            conn = sqlite3.connect(self.db_path, timeout=20)  # Увеличиваем timeout
+            cursor = conn.cursor()
+            
+            # Обновляем пути в таблице images
+            cursor.execute('''
+                UPDATE images 
+                SET image_path = REPLACE(image_path, ?, ?),
+                    folder_path = REPLACE(folder_path, ?, ?)
+                WHERE image_path LIKE ? || '%' 
+                OR folder_path LIKE ? || '%'
+            ''', (old_path, new_path, old_path, new_path, old_path, old_path))
+            
+            # Обновляем пути в таблице folder_tags
+            cursor.execute('''
+                UPDATE folder_tags 
+                SET folder_path = REPLACE(folder_path, ?, ?)
+                WHERE folder_path LIKE ? || '%'
+            ''', (old_path, new_path, old_path))
+            
+            conn.commit()
+            logger.info(f"Обновлены пути в базе данных: {old_path} -> {new_path}")
+            return True
+            
         except Exception as e:
             logger.error(f"Ошибка при обновлении путей в базе данных: {str(e)}")
+            if conn:
+                conn.rollback()
             return False
+        finally:
+            if conn:
+                conn.close()
 
     async def move_folder(self, source_path, target_path):
         """Перемещает папку и обновляет пути в базе данных"""
@@ -641,15 +650,17 @@ class YandexImageSimilarityFinder:
             folder_name = os.path.basename(source_path)
             new_path = os.path.join(target_path, folder_name)
             
-            # Сначала перемещаем папку
+            # Сначала обновляем пути в базе данных
+            if not self.update_paths_in_database(source_path, new_path):
+                logger.warning("Не удалось обновить пути в базе данных")
+                # Но продолжаем перемещение папки
+            
+            # Затем перемещаем папку
             self.yadisk.move(source_path, new_path)
             logger.info(f"Папка {source_path} перемещена в {target_path}")
             
-            # Затем обновляем пути в базе данных
-            if not self.update_paths_in_database(source_path, new_path):
-                logger.warning("Не удалось обновить пути в базе данных")
-            
             return new_path
+            
         except Exception as e:
             logger.error(f"Ошибка при перемещении папки {source_path}: {str(e)}")
             raise
@@ -778,19 +789,26 @@ class YandexImageSimilarityFinder:
 
     async def update_file_location(self, old_path, new_path, new_folder):
         """Обновляет информацию о местоположении файла в базе данных"""
+        conn = None
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute('''
-                    UPDATE images 
-                    SET image_path = ?, folder_path = ?
-                    WHERE image_path = ?
-                ''', (new_path, new_folder, old_path))
-                logger.info(f"Обновлено местоположение файла в базе данных: {old_path} -> {new_path}")
-                return True
+            conn = sqlite3.connect(self.db_path, timeout=20)
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE images 
+                SET image_path = ?, folder_path = ?
+                WHERE image_path = ?
+            ''', (new_path, new_folder, old_path))
+            conn.commit()
+            logger.info(f"Обновлено местоположение файла в базе данных: {old_path} -> {new_path}")
+            return True
         except Exception as e:
             logger.error(f"Ошибка при обновлении местоположения файла в базе данных: {str(e)}")
+            if conn:
+                conn.rollback()
             return False
+        finally:
+            if conn:
+                conn.close()
 
     def normalize_path(self, path_or_link):
         """Нормализует путь или ссылку в полный путь на Яндекс.Диске"""
