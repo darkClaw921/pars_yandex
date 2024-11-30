@@ -174,7 +174,7 @@ class YandexImageSimilarityFinder:
         similarity = 100 * np.exp(-chi_square)
         return similarity
 
-    def find_similar_images(self, file_path, threshold=91):
+    def find_similar_images(self, file_path, threshold=93):
         """Ищет похожие изображения в базе данных"""
         try:
             response = self.yadisk.download(file_path, None)
@@ -218,7 +218,7 @@ class YandexImageSimilarityFinder:
             logger.error(f"Ошибка при поиске похожих изображений: {str(e)}")
             return None
 
-    def check_local_image(self, local_image_path, threshold=91):
+    def check_local_image(self, local_image_path, threshold=93):
         """Проверяет локальный файл на наличие похожих в Яндекс.Диске"""
         try:
             with open(local_image_path, 'rb') as f:
@@ -338,7 +338,7 @@ class YandexImageSimilarityFinder:
             logger.error(f"Ошибка при проверк папки в базе данных: {str(e)}")
             return False
 
-    def compare_folders(self, folder1_path, folder2_path, threshold=91):
+    def compare_folders(self, folder1_path, folder2_path, threshold=93):
         """Сравнивает две папки и находит похожие фотографии"""
         similar_photos = []
         logger.info(f"Сравиваю папки:\n{folder1_path}\n{folder2_path}")
