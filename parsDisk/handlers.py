@@ -548,7 +548,7 @@ async def move_files_from_folder(callback: types.CallbackQuery, state: FSMContex
     )
     
     await callback.message.answer(final_message, reply_markup=keyboard)
-    await state.clear()
+    # await state.clear()
 
 @router.message(F.text == "Загрузить фото")
 async def upload_photos(message: types.Message, state: FSMContext):
@@ -675,7 +675,7 @@ async def upload_to_existing_folder(callback: types.CallbackQuery, state: FSMCon
     await callback.message.answer(
         f"Загружено {success_count} из {len(photos)} фотографий", keyboard=keyboard
     )
-    await state.clear()
+    # await state.clear()
     return 0
 
 @router.callback_query(lambda c: c.data == "cancel")
@@ -709,8 +709,8 @@ async def cancel_upload(callback: types.CallbackQuery, state: FSMContext):
         ], 
         resize_keyboard=True
     )
-    await callback.message.answer("Згрузка отменена", reply_markup=keyboard)
-    await state.clear()
+    await callback.message.answer("Загрузка отменена", reply_markup=keyboard)
+    # await state.clear()
 
 @router.callback_query(lambda c: c.data.startswith('page:'))
 async def process_page(callback_query: types.CallbackQuery, state: FSMContext):
@@ -813,7 +813,7 @@ async def process_new_folder(message: types.Message, state: FSMContext):
     except Exception as e:
         await message.answer(f"Ошибка при создании папки: {str(e)}")
     
-    await state.clear()
+    # await state.clear()
 
 @router.message(UploadStates.waiting_for_photos)
 async def process_non_photo(message: types.Message):
@@ -939,7 +939,7 @@ async def process_folder_done(callback: types.CallbackQuery, state: FSMContext):
         if not finder or not folder_mapping:
             logger.error(f"Отсутствуют необходимые данные в state: {data}")
             await callback.message.edit_text("Ошибка: данные сессии утеряны")
-            await state.clear()
+            # await state.clear()
             return
         
         folder_info = folder_mapping.get(f"f{folder_idx}")
@@ -981,12 +981,12 @@ async def process_folder_done(callback: types.CallbackQuery, state: FSMContext):
             logger.error(f"Ошибка при обработке папки {source_folder}: {str(e)}")
             await callback.message.edit_text(f"Ошибка при обработке папки: {str(e)}")
         
-        await state.clear()
+        # await state.clear()
         
     except Exception as e:
         logger.error(f"Ошибка в process_folder_done: {str(e)}")
         await callback.message.edit_text("Произошла ошибка при обработке")
-        await state.clear()
+        # await state.clear()
 
 @router.callback_query(lambda c: c.data.startswith('finish:'))
 async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext):
@@ -1002,7 +1002,7 @@ async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext
         if not finder or not folder_mapping:
             logger.error(f"Отсутствуют необходимые данные в state: {data}")
             await callback.message.edit_text("Ошибка: данные сессии утеряны")
-            await state.clear()
+            # await state.clear()
             return
         
         folder_info = folder_mapping.get(f"f{folder_idx}")
@@ -1030,12 +1030,12 @@ async def process_folder_finish(callback: types.CallbackQuery, state: FSMContext
             logger.error(f"Ошибка при завершении работы с папкой {source_folder}: {str(e)}")
             await callback.message.edit_text(f"Ошибка при завершении работы: {str(e)}")
         
-        await state.clear()
+        # await state.clear()
         
     except Exception as e:
         logger.error(f"Ошибка в process_folder_finish: {str(e)}")
         await callback.message.edit_text("Произошла ошибка при обработке")
-        await state.clear()
+        # await state.clear()
 
 @router.callback_query(lambda c: c.data.startswith('manual:'))
 async def process_folder_manual(callback: types.CallbackQuery, state: FSMContext):
@@ -1051,7 +1051,7 @@ async def process_folder_manual(callback: types.CallbackQuery, state: FSMContext
         if not finder or not folder_mapping:
             logger.error(f"Отсутствуют необходимые данные в state: {data}")
             await callback.message.edit_text("Ошибка: данные сессии утеряны")
-            await state.clear()
+            # await state.clear()
             return
         
         folder_info = folder_mapping.get(f"f{folder_idx}")
@@ -1097,7 +1097,7 @@ async def process_folder_manual(callback: types.CallbackQuery, state: FSMContext
     except Exception as e:
         logger.error(f"Ошибка в process_folder_manual: {str(e)}")
         await callback.message.edit_text("Произошла ошибка при обработке")
-        await state.clear()
+        # await state.clear()
 
 @router.callback_query(lambda c: c.data.startswith('move:'))
 async def move_remaining_files(callback: types.CallbackQuery, state: FSMContext):
