@@ -469,7 +469,7 @@ class YandexImageSimilarityFinder:
             if folder_project == self.pathMain.split('/')[-2]:
                 all_path = self.pathMain
 
-            if '/Производственный отдел/BBase 🗄/BBase' in folder_project:
+            if '/Производственный отдел/BBase/BBase' in folder_project:
                 all_path = self.pathMain
             
             # Подсчитываем общее количество файлов

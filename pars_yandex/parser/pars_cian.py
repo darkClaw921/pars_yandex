@@ -205,8 +205,8 @@ def get_info_cian(url:str):
 
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    driver = webdriver.Chrome()
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    # driver = webdriver.Chrome()
     # driver.get("https://yandex.ru/navi/org/chaykhana_mayiz/232322945673")
     # stealth(driver,
     #     languages=["en-US", "en"],
