@@ -863,7 +863,7 @@ async def send_folder_info(message: types.Message, finder, folder_path, folder_d
     high_matches = []
     low_matches = []
     for match in folder_data['similar']:
-        if match['similarity'] >= 91:
+        if match['similarity'] >= 98:
             high_matches.append(match)
         else:
             low_matches.append(match)
