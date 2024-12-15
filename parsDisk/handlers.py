@@ -108,7 +108,7 @@ class DealPaginator:
             nav_buttons.append(InlineKeyboardButton(text="◀️ Назад", callback_data=f"page:{current_page-1}"))
         nav_buttons.append(InlineKeyboardButton(text=f"{current_page}/{self.total_pages}", callback_data="ignore"))
         if current_page < self.total_pages:
-            nav_buttons.append(InlineKeyboardButton(text="Впе��ед ▶️", callback_data=f"page:{current_page+1}"))
+            nav_buttons.append(InlineKeyboardButton(text="Вперед ▶️", callback_data=f"page:{current_page+1}"))
         
         # Добавляем навигационные кнопки в конец
         builder.row(*nav_buttons)
@@ -203,7 +203,7 @@ def process_folder_path(path):
     if path.startswith('/'):
         return path.lstrip('/')
     
-    # В остальных случаях возвращаем ��уть как есть
+    # В остальных случаях возвращаем уть как есть
     return path
 
 @router.message(F.text == "Сравнить папки")
@@ -215,41 +215,39 @@ async def compare_folders_start(message: types.Message, state: FSMContext):
 async def process_first_folder(message: types.Message, state: FSMContext):
     folder_input = message.text
     finder = YandexImageSimilarityFinder(bins=16)
-    print(folder_input)
-    # try:
-    if is_yandex_link(folder_input):
-        # Если передана ссылка
-        folder_meta = finder.yadisk.get_public_meta(folder_input)
-        folder_path = finder.pathMain + folder_meta.name
-        folder_link = folder_input
-    else:
-        # Если передан путь
-        processed_path = process_folder_path(folder_input)
-        folder_path = os.path.join('/', processed_path)
-        try:
-            folder_meta = finder.yadisk.get_meta(folder_path)
-            folder_link = finder.get_public_link(folder_path)
-        except Exception as e:
-            
-            await message.answer(f"Ошибка при доступе к папке по пути {folder_path}: {str(e)}", parse_mode='HTML')
-            await state.clear()
-            return
     
-    await message.answer(f"📂 Полный путь к папке:\n{folder_path}",parse_mode='HTML')
-    
-    # Сохраняем информацию о первой папке
-    await state.update_data(
-        finder=finder,
-        first_folder_link=folder_link,
-        first_folder_path=folder_path
-    )
-    
-    await message.answer("Отправьте ссылку или путь ко второй папке для сравнения:")
-    await state.set_state(UploadStates.waiting_for_second_folder)
+    try:
+        # Нормализуем путь или обрабатываем ссылку
+        if finder.is_yandex_link(folder_input):
+            folder_meta = finder.yadisk.get_public_meta(folder_input)
+            folder_path = os.path.join(finder.pathMain, folder_meta.name)
+            folder_link = folder_input
+        else:
+            # Если передан путь
+            folder_path = finder.normalize_path(folder_input)
+            try:
+                folder_meta = finder.yadisk.get_meta(folder_path)
+                folder_link = finder.get_public_link(folder_path)
+            except Exception as e:
+                await message.answer(f"Ошибка при доступе к папке по пути {folder_path}: {str(e)}")
+                await state.clear()
+                return
         
-    # except Exception as e:
-    # await message.answer(f"Ошибка при доступе к папке: {str(e)}", parse_mode='HTML')
-    # await state.clear()
+        await message.answer(f"📂 Полный путь к папке:\n{folder_path}")
+        
+        # Сохраняем информацию о первой папке
+        await state.update_data(
+            finder=finder,
+            first_folder_link=folder_link,
+            first_folder_path=folder_path
+        )
+        
+        await message.answer("Отправьте ссылку или путь ко второй папке для сравнения:")
+        await state.set_state(UploadStates.waiting_for_second_folder)
+            
+    except Exception as e:
+        await message.answer(f"Ошибка при доступе к папке: {str(e)}")
+        await state.clear()
 
 @router.message(UploadStates.waiting_for_second_folder)
 async def process_second_folder(message: types.Message, state: FSMContext):
@@ -260,15 +258,12 @@ async def process_second_folder(message: types.Message, state: FSMContext):
     first_folder_link = data['first_folder_link']
     
     try:
-        if is_yandex_link(folder_input):
-            # Ели передана ссылка
+        if finder.is_yandex_link(folder_input):
             folder_meta = finder.yadisk.get_public_meta(folder_input)
-            second_folder_path = finder.pathMain + folder_meta.name
+            second_folder_path = os.path.join(finder.pathMain, folder_meta.name)
             folder_link = folder_input
         else:
-            # Если передан путь
-            processed_path = process_folder_path(folder_input)
-            second_folder_path = os.path.join('/', processed_path)
+            second_folder_path = finder.normalize_path(folder_input)
             try:
                 folder_meta = finder.yadisk.get_meta(second_folder_path)
                 folder_link = finder.get_public_link(second_folder_path)
@@ -276,6 +271,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 await message.answer(f"Ошибка при доступе к папке по пути {second_folder_path}: {str(e)}")
                 await state.clear()
                 return
+        
         logger.info(f"📂 Полный путь к папке: {second_folder_path}")
         await message.answer(f"📂 Полный путь к папке:\n{second_folder_path}", parse_mode='HTML')
         
@@ -286,7 +282,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
         second_folder_exists = finder.is_folder_in_database(second_folder_path)
         
         logger.info(f"Первая папка {first_folder_path}: {'найдена' if first_folder_exists else 'не найдена'} в базе")
-        logger.info(f"Вторая папка {second_folder_path}: {'найдена' if second_folder_exists else 'не на��дена'} в базе")
+        logger.info(f"Вторая папка {second_folder_path}: {'найдена' if second_folder_exists else 'не найдена'} в базе")
         
         scan_success = True
         
@@ -302,7 +298,13 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 progress_text = f"Сканирую первую папку:\n[{progress_bar}] {percentage}%\nОсталось примерно: {estimated_time}"
                 await status_message.edit_text(progress_text)
             
-            scan_success = await finder.scan_directory_async(first_folder_link, update_progress)
+            if first_folder_path.startswith('/'):
+
+                scan_success = await finder.scan_directory_async(first_folder_path, update_progress, first_folder_path)
+            else:
+                scan_success = await finder.scan_directory_async(first_folder_link, update_progress)
+            # scan_success = await finder.scan_directory_async(first_folder_link, update_progress)
+            
             if not scan_success:
                 await status_message.edit_text("❌ Ошибка при сканировании первой папки")
                 await state.clear()
@@ -323,8 +325,12 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                 percentage = int((current / total) * 100)
                 progress_text = f"Сканирую вторую папку:\n[{progress_bar}] {percentage}%\nОсталось примерно: {estimated_time}"
                 await status_message.edit_text(progress_text)
+            if second_folder_path.startswith('/'):
+                scan_success = await finder.scan_directory_async(second_folder_path, update_progress, second_folder_path)
+            else:
+                scan_success = await finder.scan_directory_async(folder_link, update_progress)
             
-            scan_success = await finder.scan_directory_async(folder_link, update_progress)
+            
             if not scan_success:
                 await status_message.edit_text("❌ Ошибка при сканировании второй папки")
                 await state.clear()
@@ -611,7 +617,7 @@ async def finish_adding_photos(message: types.Message, state: FSMContext):
     similar_folders = data.get('similar_folders', {})
     
     if not photos:
-        await message.answer("Вы не отправили ни одной фотографии.")
+        await message.answer("Вы не отправили ни одной ф��тографии.")
         return
     
     if similar_folders:
@@ -830,7 +836,7 @@ async def process_non_photo(message: types.Message):
 
 #     # Загружаем все собранные фотографии на Яндекс Диск
 #     # for downloaded_file in photos:
-#     #     filename = f"{downloaded_file.file_id}.jpg"  # Или используйте другой способ генерации имени
+#     #     filename = f"{downloaded_file.file_id}.jpg"  # Или используйте дру��ой способ генерации имени
 #     #     yadisk_path = f"/{folder}/{filename}"
 #     #     yadisk_manager.upload_file(downloaded_file, yadisk_path)
 #     pprint(photos)
@@ -909,7 +915,7 @@ async def send_folder_info(message: types.Message, finder, folder_path, folder_d
     source_name = truncate_name(os.path.basename(folder_path))
     target_name = truncate_name(os.path.basename(target_subfolder))  # Используем имя целевой подпапки
     
-    # Подсчитываем количество непохожих ф��йлов и файлов с низкой схожестью
+    # Подсчитываем количество непохожих файлов и файлов с низкой схожестью
     similar_files = set(m['file1'] for m in folder_data['similar'])
     high_similarity_files = set(m['file1'] for m in folder_data['similar'] if m['similarity'] >= 91)
     

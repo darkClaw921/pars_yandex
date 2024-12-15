@@ -293,7 +293,7 @@ class YandexImageSimilarityFinder:
             if histogram:
                 with sqlite3.connect(self.db_path) as conn:
                     cursor = conn.cursor()
-                    # Получаем MD5 хэш загруженного файла
+                    # Получаем MD5 хэш загр��женного файла
                     file_meta = self.yadisk.get_meta(target_path)
                     cursor.execute(
                         'INSERT INTO images (image_path, folder_path, histogram, md5_hash) VALUES (?, ?, ?, ?)',
@@ -335,13 +335,17 @@ class YandexImageSimilarityFinder:
                 
                 return count > 0
         except Exception as e:
-            logger.error(f"Ошибка при проверк папки в базе данных: {str(e)}")
+            logger.error(f"Ошибка при проверке папки в базе данных: {str(e)}")
             return False
 
     def compare_folders(self, folder1_path, folder2_path, threshold=98):
         """Сравнивает две папки и находит похожие фотографии"""
         similar_photos = []
-        logger.info(f"Сравиваю папки:\n{folder1_path}\n{folder2_path}")
+        logger.info(f"Сравниваю папки:\n{folder1_path}\n{folder2_path}")
+        
+        # Нормализуем пути
+        folder1_path = self.normalize_path(folder1_path)
+        folder2_path = self.normalize_path(folder2_path)
         
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -351,7 +355,7 @@ class YandexImageSimilarityFinder:
             total_images = cursor.fetchone()[0]
             logger.info(f"Всего изображений в базе данных: {total_images}")
             
-            # Получаем все фотографии из первой папки и её подпапок
+            # Получаем все фотографии из первой папки и её под��апок
             patterns1 = [f"{folder1_path}%", f"disk:{folder1_path}%"]
             query1 = '''
                 SELECT image_path, histogram FROM images 
@@ -423,7 +427,7 @@ class YandexImageSimilarityFinder:
             file_name = os.path.basename(source_path)
             target_path = f"{target_folder}/{file_name}"
             
-            # Если файл с таким именем уе существует, добавляем timestamp
+            # Если файл с таким именем уже существует, добавляем timestamp
             try:
                 self.yadisk.get_meta(target_path)
                 name, ext = os.path.splitext(file_name)
@@ -441,10 +445,11 @@ class YandexImageSimilarityFinder:
         """Рекурсивно подсчитывает количество файлов в папке и подпапках"""
         total = 0
         try:
+            # Добавляем префикс disk: если его нет
+            disk_path = path if path.startswith('disk:') else f'disk:{path}'
+            logger.info(f"Подсчет файлов в: {disk_path}")
             
-            # path='disk:'+path
-            print(path)
-            items = self.yadisk.get_meta(path).embedded.items
+            items = self.yadisk.get_meta(disk_path).embedded.items
             for item in items:
                 if item.file is not None and item.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
                     total += 1
@@ -454,23 +459,37 @@ class YandexImageSimilarityFinder:
             logger.error(f"Ошибка при подсчете файлов в {path}: {str(e)}")
         return total
 
-    async def scan_directory_async(self, public_link, progress_callback):
+    def is_yandex_link(self, text):
+        """Проверяет, является ли текст ссылкой на Яндекс.Диск"""
+        return isinstance(text, str) and text.startswith(('https://disk.yandex.ru/', 'https://yadi.sk/'))
+
+    async def scan_directory_async(self, public_link, progress_callback, path_user:str=None):
         """Асинхронно сканирует директорию на Яндекс.Диске"""
         try:
-            logger.info(f"Начинаем сканирование директории по ссылке: {public_link}")
+            logger.info(f"Начинаем сканирование директории по ссылке/пути: {public_link}")
             
-            folder_project = self.yadisk.get_public_meta(public_link).name
-            
+            # Нормализуем путь
+            if path_user:
+                public_link = path_user
 
+            logger.info(f"scan_directory_async: {public_link}")
 
-            all_path = self.pathMain + folder_project + '/'
+            if public_link.startswith('/'):
+                all_path = public_link
+
+            elif self.is_yandex_link(public_link):
+                # Если это ссылка, получаем путь напрямую из метаданных
+                folder_meta = self.yadisk.get_public_meta(public_link)
+                pprint(folder_meta)
+                all_path = folder_meta.path.replace('disk:', '')
+                logger.info(f"Путь из ссылки: {all_path}") 
+            else:
+                # Если это путь, нормализуем его
+                all_path = self.normalize_path(public_link)
+                logger.info(f"Путь из пользователя: {all_path}")
+
+            logger.info(f"Нормализованный путь: {all_path}")
             start_time = time.time()
-
-            if folder_project == self.pathMain.split('/')[-2]:
-                all_path = self.pathMain
-
-            if '/Производственный отдел/BBase/BBase' in folder_project:
-                all_path = self.pathMain
             
             # Подсчитываем общее количество файлов
             total_files = self.count_files_recursive(all_path)  # Используем метод класса
@@ -497,14 +516,16 @@ class YandexImageSimilarityFinder:
     async def scan_folder_recursive(self, path, conn, cursor, processed_files, total_files, files_added, start_time, progress_callback):
         """Рекурсивно сканирует папку и её подпапки"""
         try:
-            items = self.yadisk.get_meta(path).embedded.items
+            # Добавляем префикс disk: если его нет
+            disk_path = path if path.startswith('disk:') else f'disk:{path}'
+            items = self.yadisk.get_meta(disk_path).embedded.items
             for item in items:
                 if item.file is not None and item.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
                     try:
                         # Проверяем оба варианта пути
                         cursor.execute(
                             'SELECT COUNT(*) FROM images WHERE image_path = ? OR image_path = ?', 
-                            (item.path, f"disk:{item.path}")
+                            (item.path, item.path.replace('disk:', ''))
                         )
                         if cursor.fetchone()[0] == 0:
                             download_link = self.yadisk.get_download_link(item.path)
@@ -525,7 +546,7 @@ class YandexImageSimilarityFinder:
                                     logger.info(f"Добавлен файл: {clean_path} в папке: {path}")
                     
                         processed_files[0] += 1
-                        # Вычисляем оствшееся время
+                        # Вычисляем оставшееся время
                         elapsed_time = time.time() - start_time
                         files_per_second = processed_files[0] / elapsed_time if elapsed_time > 0 else 0
                         remaining_files = total_files - processed_files[0]
@@ -730,7 +751,7 @@ class YandexImageSimilarityFinder:
             return []
 
     def get_current_folder_files(self, folder_path):
-        """Получает актуальный список файлов в папке"""
+        """Получает актуа��ьный список файлов в папке"""
         try:
             files = []
             items = self.yadisk.get_meta(folder_path).embedded.items
@@ -813,21 +834,13 @@ class YandexImageSimilarityFinder:
     def normalize_path(self, path_or_link):
         """Нормализует путь или ссылку в полный путь на Яндекс.Диске"""
         try:
-            if path_or_link.startswith(('https://disk.yandex.ru/', 'https://yadi.sk/')):
-                # Если это ссылка
+            if self.is_yandex_link(path_or_link):
+                # Если это ссылка, получаем путь из метаданных
                 folder_meta = self.yadisk.get_public_meta(path_or_link)
                 return folder_meta.path.replace('disk:', '')
             else:
-                # Если это путь
-                clean_path = path_or_link.strip('/')
-                # Проверяем, является ли путь абсолютным
-                if clean_path.startswith('Производственный отдел'):
-                    return f"/{clean_path}"
-                elif clean_path.startswith('/'):
-                    return clean_path
-                else:
-                    # Если путь относительный, добавляем к корневой папке
-                    return os.path.join(self.pathMain, clean_path)
+                # Если это путь, возвращаем его без изменений
+                return path_or_link
         except Exception as e:
             logger.error(f"Ошибка при нормализации пути {path_or_link}: {str(e)}")
             raise
