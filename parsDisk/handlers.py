@@ -299,7 +299,8 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             await status_message.edit_text(f"Первая папка не найдена в базе, начинаю сканирование...")
             progress_text = "Сканирую первую папку:\n[□□□□□□□□□□] 0% (осталось: --)"
             await status_message.edit_text(progress_text)
-            
+            start_time = time.time()
+
             async def update_progress(current, total, estimated_time):
                 #обновляем прогресс только если прошло больше 1 минуты
                 if time.time() - start_time > 60:
@@ -330,6 +331,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             await status_message.edit_text(f"Вторая папка не найдена в базе, ачинаю сканирование...")
             progress_text = "Сканирую вторую папку:\n[□□□□□□□□□□] 0% (осталось: --)"
             await status_message.edit_text(progress_text)
+            start_time = time.time()
             
             async def update_progress(current, total, estimated_time):
                 #обновляем прогресс только если прошло больше 1 минуты

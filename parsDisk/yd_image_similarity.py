@@ -462,10 +462,12 @@ class YandexImageSimilarityFinder:
 
     def delete_folder_from_database(self, folder_path):
         """Удаляет папку из базы данных где путь начинается с folder_path"""
+        logger.info(f"Удаляем папку которая начинается с {folder_path} из базы данных")
         
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute('DELETE FROM images WHERE folder_path LIKE ?', (folder_path,))
+            cursor.execute('DELETE FROM images WHERE folder_path LIKE ?', (folder_path + '%',))
+            logger.info(f"Удалено {cursor.rowcount} файлов")
             conn.commit()
             logger.info(f"Папка {folder_path} удалена из базы данных")
 
