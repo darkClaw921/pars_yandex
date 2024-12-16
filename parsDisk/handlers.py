@@ -170,7 +170,7 @@ async def cmd_start(message: types.Message):
 @router.message(Command('delete_folder'))
 async def delete_folder_in_db(message: types.Message):
     # удаляем папку с отправленым путем из базы /Производственный отдел/разобрать
-    folder_path = message.text.split(' ')[1]
+    folder_path = message.text.replace('/delete_folder', '').strip()
     finder = YandexImageSimilarityFinder(bins=16)
     finder.delete_folder_from_database(folder_path)
     await message.answer("Папка удалена из базы")
