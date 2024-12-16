@@ -233,7 +233,7 @@ async def process_first_folder(message: types.Message, state: FSMContext):
                 await state.clear()
                 return
         
-        await message.answer(f"📂 Полный путь к папке:\n{folder_path}")
+        await message.answer(f"📂 Полный путь к папке:\n{folder_path}", parse_mode='HTML')
         
         # Сохраняем информацию о первой папке
         await state.update_data(
