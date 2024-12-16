@@ -459,6 +459,16 @@ class YandexImageSimilarityFinder:
             logger.error(f"Ошибка при подсчете файлов в {path}: {str(e)}")
         return total
 
+
+    def delete_folder_from_database(self, folder_path):
+        """Удаляет папку из базы данных где путь начинается с folder_path"""
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM images WHERE folder_path LIKE ?', (folder_path,))
+            conn.commit()
+            logger.info(f"Папка {folder_path} удалена из базы данных")
+
     def is_yandex_link(self, text):
         """Проверяет, является ли текст ссылкой на Яндекс.Диск"""
         return isinstance(text, str) and text.startswith(('https://disk.yandex.ru/', 'https://yadi.sk/'))

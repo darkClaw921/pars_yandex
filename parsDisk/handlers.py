@@ -167,6 +167,14 @@ async def cmd_start(message: types.Message):
     except Exception as e:
         logger.error(f"Ошибка при инициализации: {str(e)}")
 
+@router.message(Command('delete_folder'))
+async def delete_folder_in_db(message: types.Message):
+    # удаляем папку с отправленым путем из базы /Производственный отдел/разобрать
+    folder_path = message.text.split(' ')[1]
+    finder = YandexImageSimilarityFinder(bins=16)
+    finder.delete_folder_from_database(folder_path)
+    await message.answer("Папка удалена из базы")
+
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
     
@@ -332,7 +340,7 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                     percentage = int((current / total) * 100)
                     progress_text = f"Сканирую вторую папку:\n[{progress_bar}] {percentage}%\nОсталось примерно: {estimated_time}"
                     await status_message.edit_text(progress_text)
-                    
+
             if second_folder_path.startswith('/'):
                 scan_success = await finder.scan_directory_async(second_folder_path, update_progress, second_folder_path)
             else:
