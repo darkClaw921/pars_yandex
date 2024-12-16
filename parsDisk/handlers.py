@@ -299,12 +299,15 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             await status_message.edit_text(f"Первая папка не найдена в базе, начинаю сканирование...")
             progress_text = "Сканирую первую папку:\n[□□□□□□□□□□] 0% (осталось: --)"
             await status_message.edit_text(progress_text)
-            start_time = time.time()
+            
+            # Создаем nonlocal переменную для хранения времени начала
+            progress_state = {'start_time': time.time()}
 
             async def update_progress(current, total, estimated_time):
+                nonlocal progress_state
                 #обновляем прогресс только если прошло больше 1 минуты
-                if time.time() - start_time > 60:
-                    start_time = time.time()
+                if time.time() - progress_state['start_time'] > 60:
+                    progress_state['start_time'] = time.time()
                     progress = int((current / total) * 10)
                     progress_bar = "■" * progress + "□" * (10 - progress)
                     percentage = int((current / total) * 100)
@@ -312,11 +315,9 @@ async def process_second_folder(message: types.Message, state: FSMContext):
                     await status_message.edit_text(progress_text)
             
             if first_folder_path.startswith('/'):
-
                 scan_success = await finder.scan_directory_async(first_folder_path, update_progress, first_folder_path)
             else:
                 scan_success = await finder.scan_directory_async(first_folder_link, update_progress)
-            # scan_success = await finder.scan_directory_async(first_folder_link, update_progress)
             
             if not scan_success:
                 await status_message.edit_text("❌ Ошибка при сканировании первой папки")
@@ -331,12 +332,15 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             await status_message.edit_text(f"Вторая папка не найдена в базе, ачинаю сканирование...")
             progress_text = "Сканирую вторую папку:\n[□□□□□□□□□□] 0% (осталось: --)"
             await status_message.edit_text(progress_text)
-            start_time = time.time()
             
+            # Создаем nonlocal переменную для хранения времени начала
+            progress_state = {'start_time': time.time()}
+
             async def update_progress(current, total, estimated_time):
+                nonlocal progress_state
                 #обновляем прогресс только если прошло больше 1 минуты
-                if time.time() - start_time > 60:
-                    start_time = time.time()
+                if time.time() - progress_state['start_time'] > 60:
+                    progress_state['start_time'] = time.time()
                     progress = int((current / total) * 10)
                     progress_bar = "■" * progress + "□" * (10 - progress)
                     percentage = int((current / total) * 100)
