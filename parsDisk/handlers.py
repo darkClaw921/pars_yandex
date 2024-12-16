@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import time
 import traceback
 from aiogram import types, F, Router, html, Bot
 from aiogram.types import (Message, CallbackQuery,
@@ -292,11 +293,14 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             await status_message.edit_text(progress_text)
             
             async def update_progress(current, total, estimated_time):
-                progress = int((current / total) * 10)
-                progress_bar = "■" * progress + "□" * (10 - progress)
-                percentage = int((current / total) * 100)
-                progress_text = f"Сканирую первую папку:\n[{progress_bar}] {percentage}%\nОсталось примерно: {estimated_time}"
-                await status_message.edit_text(progress_text)
+                #обновляем прогресс только если прошло больше 1 минуты
+                if time.time() - start_time > 60:
+                    start_time = time.time()
+                    progress = int((current / total) * 10)
+                    progress_bar = "■" * progress + "□" * (10 - progress)
+                    percentage = int((current / total) * 100)
+                    progress_text = f"Сканирую первую папку:\n[{progress_bar}] {percentage}%\nОсталось примерно: {estimated_time}"
+                    await status_message.edit_text(progress_text)
             
             if first_folder_path.startswith('/'):
 
@@ -320,11 +324,15 @@ async def process_second_folder(message: types.Message, state: FSMContext):
             await status_message.edit_text(progress_text)
             
             async def update_progress(current, total, estimated_time):
-                progress = int((current / total) * 10)
-                progress_bar = "■" * progress + "□" * (10 - progress)
-                percentage = int((current / total) * 100)
-                progress_text = f"Сканирую вторую папку:\n[{progress_bar}] {percentage}%\nОсталось примерно: {estimated_time}"
-                await status_message.edit_text(progress_text)
+                #обновляем прогресс только если прошло больше 1 минуты
+                if time.time() - start_time > 60:
+                    start_time = time.time()
+                    progress = int((current / total) * 10)
+                    progress_bar = "■" * progress + "□" * (10 - progress)
+                    percentage = int((current / total) * 100)
+                    progress_text = f"Сканирую вторую папку:\n[{progress_bar}] {percentage}%\nОсталось примерно: {estimated_time}"
+                    await status_message.edit_text(progress_text)
+                    
             if second_folder_path.startswith('/'):
                 scan_success = await finder.scan_directory_async(second_folder_path, update_progress, second_folder_path)
             else:
