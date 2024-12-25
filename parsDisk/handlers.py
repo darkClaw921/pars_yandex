@@ -1025,7 +1025,10 @@ async def process_folder_done(callback: types.CallbackQuery, state: FSMContext):
             completed_folder = os.path.join(os.path.dirname('/Производственный отдел/BBase/'), 'завершено') 
             # completed_folder = os.path.join(os.path.dirname(source_folder), 'завершено')
             if not finder.folder_exists(completed_folder):
-                finder.create_folder(completed_folder)
+                try:
+                    finder.create_folder(completed_folder)
+                except:
+                    logger.error(f"Ошибка при создании папки 'завершено': {str(e)}")
             
             new_path = await finder.move_folder(source_folder, completed_folder)
             
