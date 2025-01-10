@@ -639,7 +639,7 @@ async def finish_adding_photos(message: types.Message, state: FSMContext):
     similar_folders = data.get('similar_folders', {})
     
     if not photos:
-        await message.answer("Вы не отправили ни одной ф��тографии.")
+        await message.answer("Вы не отправили ни одной фотографии.")
         return
     
     if similar_folders:
@@ -667,7 +667,7 @@ async def finish_adding_photos(message: types.Message, state: FSMContext):
         keyboard.button(text="Новая папка", callback_data="new_folder")
         keyboard.adjust(1)
         
-        await message.answer(text, reply_markup=keyboard.as_markup())
+        await message.answer(text, reply_markup=keyboard.as_markup(), parse_mode="HTML")
     else:
         # Нет похожи фотографий
         await message.answer("Похожих фотографий не найдено. Хотите создать новую папку?",
@@ -702,7 +702,7 @@ async def upload_to_existing_folder(callback: types.CallbackQuery, state: FSMCon
     
     keyboard = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Загрузить фото")]], resize_keyboard=True)
     await callback.message.answer(
-        f"Загружено {success_count} из {len(photos)} фотографий", keyboard=keyboard
+        f"Загружено {success_count} из {len(photos)} фотографий", keyboard=keyboard, parse_mode="HTML"
     )
     # await state.clear()
     return 0
