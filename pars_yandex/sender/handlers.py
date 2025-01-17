@@ -165,7 +165,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
     await message.answer("Выберите сделку:", reply_markup=paginator.get_keyboard(1))
     
     projectID = postgreWork.get_last_project_for_user(userID=message.from_user.id)
-    
+    # 1/0 
     if projectID is None:
         projectID = 0
     else:
@@ -191,12 +191,15 @@ async def process_deal_selection(callback_query: types.CallbackQuery, state: FSM
     deals = data['deals']
     # a=data['folder'] 
     # pprint(a)
+    
     selected_deal = next((deal for deal in deals.values() if str(deal['ID']) == deal_id), None)
     if selected_deal:
         await state.update_data(selected_deal=selected_deal)
         
         # Получаем список папок
-        pprint(selected_deal)
+        # pprint(selected_deal)
+        sheetDeal=selected_deal[Deal.sheetUrl]
+        logger.debug(f'{sheetDeal=}')
         try:
             folders = Yd.get_all_folders(selected_deal[Deal.urlFolder])
         except:
@@ -204,7 +207,9 @@ async def process_deal_selection(callback_query: types.CallbackQuery, state: FSM
 
         folder_paginator = FolderPaginator(folders)
         
-        await state.update_data(folder_paginator=folder_paginator, dealUrlFolder=selected_deal[Deal.urlFolder])
+        await state.update_data(folder_paginator=folder_paginator, 
+                                dealUrlFolder=selected_deal[Deal.urlFolder],
+                                sheetDealUrl=sheetDeal)
         await callback_query.message.edit_text("Выберите существующую папку или создайте новую:", reply_markup=folder_paginator.get_keyboard(1))
         await state.set_state(UploadStates.waiting_for_folder)
     else:
@@ -263,13 +268,13 @@ async def process_new_folder(message: types.Message, state: FSMContext):
 @router.message(UploadStates.waiting_for_photos, F.photo)
 async def process_photos(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    pprint(data)
+    # pprint(data)
     folder = data['folder']
     photos = data['photos']
     
     projectID=data['projectID']
 
-    pprint(message.photo)
+    # pprint(message.photo)
     # Обработка фотографии
     photo=message.photo[-1]
     # for photo in message.photo[-1]:
@@ -285,17 +290,18 @@ async def process_photos(message: types.Message, state: FSMContext):
     # Сохраняем файл в список
     pathFile=f'photos/{file_id}.jpg'
     photos.append(pathFile)
-    pprint(photos)
+    # pprint(photos)
 
-
+    
     folder_path, publickURL = Yd.create_folder_and_upload_file(publickURL=data['dealUrlFolder'], 
                                                     folderName=folder, 
                                                     fileName=filename, 
                                                     fileURL=pathFile,
                                                     projectID=projectID)
-                                                    
+    postgreWork.update_project(projectID=projectID, folderURL=publickURL)
     # Обновляем состояние с новыми фотографиями
-    await state.update_data(photos=photos)
+    await state.update_data(photos=photos,
+                            folderURL=publickURL)
     
     await message.react(reaction=[ReactionTypeEmoji(emoji='🫡')], is_big=True)
     # await message.answer("Фото добавлены в очередь. Вы можете отправить еще фотографии или завершить загрузку.")
@@ -326,8 +332,9 @@ async def upload_photos(message: types.Message, state: FSMContext):
 Телефон: {project.phone}
 Папка: {project.folder_url}
 Время работы: {project.time_work}
+Таблица: {data['sheetDealUrl']}
 """
-    await message.answer(f"Это правильные данные?\n{dat}", reply_markup=keyboard)
+    await message.answer(f"Это правильные данные?\n{dat}", reply_markup=keyboard, parse_mode='HTML')
     return 0
     if not project.isAddtoSheet:
         
@@ -373,7 +380,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
     
     # pprint(project.__dict__)
     if not project.is_add_to_sheet:
-        
+        s=Sheet('bitrixsheeds-54bab8f441ae.json','Объекты тест','Объекты',sheetDealUrl=data['sheetDealUrl']) 
         s.add_new_location(name=project.name,
                     address=project.address,
                     phone=project.phone,
@@ -424,7 +431,7 @@ async def upload_photos(message: types.Message, state: FSMContext):
         folderURL=project.folder_url
 
     nameProject=data['folder']
-
+    s=Sheet('bitrixsheeds-54bab8f441ae.json','Объекты тест','Объекты',sheetDealUrl=data['sheetDealUrl']) 
     s.add_new_location(name=nameProject,
                     address='',
                     phone='',

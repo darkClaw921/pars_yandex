@@ -6,15 +6,18 @@ from pprint import pprint
 class Sheet():
 
     @logger.catch
-    def __init__(self, jsonPath: str, sheetName: str, workSheetName, servisName: str = None):
+    def __init__(self, jsonPath: str, sheetName: str, workSheetName, servisName: str = None, sheetDealUrl: str = None):
 
         self.scope = ['https://spreadsheets.google.com/feeds',
                       'https://www.googleapis.com/auth/drive']  # что то для чего-то нужно Костыль
         self.creds = ServiceAccountCredentials.from_json_keyfile_name(
             jsonPath, self.scope)  # Секретынй файл json для доступа к API
         self.client = gspread.authorize(self.creds)
-        self.sheet = self.client.open(sheetName).worksheet(
-            workSheetName)  # Имя таблицы
+        if sheetDealUrl:
+            self.sheet = self.client.open_by_url(sheetDealUrl).worksheet(workSheetName)
+        else:
+            self.sheet = self.client.open(sheetName).worksheet(
+                workSheetName)  # Имя таблицы
         # self.sheet = self.client.open(workSheetName)  # Имя таблицы
 
     def send_cell(self, position: str, value):
@@ -71,8 +74,8 @@ class Sheet():
         lastClearRowLocation, colIndexLocation=self.get_last_clear_row_for_column('ОБЪЕКТ')
         self.update_cell(lastClearRowLocation, colIndexLocation, name)
 
-        #ССЫЛКА НА ФОТО
-        lastClearRowPhoto, colIndexPhoto=self.get_last_clear_row_for_column('ССЫЛКА НА ФОТО')
+        #ССЫЛКА НА ФОТО В НАШЕЙ БАЗЕ
+        lastClearRowPhoto, colIndexPhoto=self.get_last_clear_row_for_column('ССЫЛКА НА ФОТО В НАШЕЙ БАЗЕ')
         self.update_cell(lastClearRowLocation, colIndexPhoto, folderURL)
 
         #АДРЕС

@@ -51,15 +51,31 @@ class YandexDiskManager:
         print(f'{publickURL=}, {folderName=}, {fileName=}, {fileURL=}')
         folderProject=self.yadisk.get_public_meta(publickURL).name
         allPath=self.pathMain+folderProject+'/'+folderName
-        
-        publickURL=None 
+        print(f'{folderProject=}, {allPath=}')
+        print(f"{projectID=}")
+        print("======================================") 
+        # publickURL=None 
         try:
             folder_path, publickURL = self.create_folder(allPath)    
-            postgreWork.update_project(projectID=projectID, folderURL=publickURL)
+            logger.debug(f'{publickURL=}')
+            publickURL=self.yadisk.publish(allPath)
 
+            logger.debug(f'{publickURL=}')
+            publickURL=self.yadisk.get_meta(allPath)
+            publickURL=publickURL.public_url
+            logger.debug(f'{publickURL=}')
+            postgreWork.update_project(projectID=projectID, folderURL=publickURL)
             
         except:
             logger.debug(f'Папка {folderName} уже существует')
+            publickURL=self.yadisk.get_meta(allPath)
+            publickURL=publickURL.public_url
+            logger.debug(f'{publickURL=}')
+            if publickURL is None:
+                self.yadisk.publish(allPath)
+                publickURL=self.yadisk.get_meta(allPath)
+                publickURL=publickURL.public_url
+            
             postgreWork.update_project(projectID=projectID, folderURL=publickURL)
             folder_path = allPath
 
@@ -93,12 +109,12 @@ class YandexDiskManager:
 if __name__ =='__main__':
     yadisk_manager = YandexDiskManager(APLICATION_ID=APLICATION_ID, APLICATION_SECRET=APLICATION_SECRET, TOKEN_YD=TOKEN_YD, isTest=False)
     # yadisk_manager.yadisk.p
-    yadisk_manager.get_all_folders('https://disk.yandex.ru/d/3WffDvblGewifg')
-    1/0
-    a=yadisk_manager.yadisk.get_meta('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 12/test.jpg')
+    # yadisk_manager.get_all_folders('https://disk.yandex.ru/d/3WffDvblGewifg')
+    # 1/0
+    a=yadisk_manager.yadisk.get_meta('/Производственный отдел/ПРОЕКТЫ - собираем подборки под проекты, извлекаем отсюда новые/_АКТИВНЫЕ ТЕНДЕРЫ/Реклама Барни/')
     # a=yadisk_manager.yadisk.get_public_resources('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 12/')
-    # pprint(a.__dict__)
-
+    pprint(a.public_url)
+    1/0
     # b=yadisk_manager.yadisk.get_meta('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/test folder 1/test.jpg')
     b=yadisk_manager.yadisk.get_meta('/Производственный отдел/ТЕСТИРОВАНИЕ/ТЕСТИРУЕМ БОТА - 1/')
     # b=yadisk_manager.yadisk.get_public_download_link(public_key=a.public_key)

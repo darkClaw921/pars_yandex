@@ -1,3 +1,4 @@
+import traceback
 from sqlalchemy import (create_engine, Column, 
                         Integer, Float, String,
                         DateTime, JSON, ARRAY, 
@@ -12,10 +13,13 @@ from pprint import pprint
 
 
 load_dotenv()
-userName = os.environ.get('POSTGRES_USER')
-password = os.environ.get('POSTGRES_PASSWORD')
-db = os.environ.get('POSTGRES_DB')
-url = os.environ.get('POSTGRES_URL')
+
+
+userName = os.environ.get('POSTGRES_USER1')
+password = os.environ.get('POSTGRES_PASSWORD1')
+db = os.environ.get('POSTGRES_DB1')
+url = os.environ.get('POSTGRES_URL1')
+print(f'{userName=}, {password=}, {db=}, {url=}')
 # url='postgres-ys'
 # url='localhost'
 
@@ -34,7 +38,7 @@ Base = declarative_base()
 
 
 class User(Base):
-    __tablename__ = 'User'
+    __tablename__ = 'photo_parser_users'
     
     id = Column(BigInteger, primary_key=True)
     created_date = Column(DateTime)
@@ -45,7 +49,7 @@ class User(Base):
    
 
 class Message(Base):
-    __tablename__ = 'Message'
+    __tablename__ = 'photo_parser_messages'
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     created_date = Column(DateTime)
     user_id=Column(BigInteger)
@@ -57,9 +61,9 @@ class Message(Base):
 
 
 class Project(Base):
-    __tablename__ = 'Project'
+    __tablename__ = 'photo_parser_projects'
     id = Column(BigInteger, primary_key=True)
-    created_date = Column(DateTime)
+    create_date = Column(DateTime)
     user_id=Column(BigInteger)
     name=Column(String)
     phone=Column(String)
@@ -203,8 +207,9 @@ def update_project(projectID:int,name:str=None, phone:str=None,
 def get_last_project_for_user(userID:int)->Project:
     with Session() as session:
         try:
-            project=session.query(Project).filter(Project.user_id==userID).order_by(Project.created_date.desc()).first()
-        except:
+            project=session.query(Project).filter(Project.user_id==userID).order_by(Project.create_date.desc()).first()
+        except Exception as e:
+            print(traceback.format_exc())
             project=None
         return project
 
